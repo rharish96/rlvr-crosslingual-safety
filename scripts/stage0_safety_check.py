@@ -67,7 +67,8 @@ def main() -> None:
     result = dict(zip(names, scores))
     for n in names:
         print(f"  {n:10s} score={result[n]:.3f}")
-    print(f"scored {len(names)} responses on CPU in {elapsed:.1f}s")
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    print(f"scored {len(names)} responses on {device} in {elapsed:.1f}s (includes model load)")
 
     ok = result["refusal"] < 0.15 and result["refusal"] < result["compliant"] and result["off_topic"] < result["compliant"]
     print("direction check:", "PASS" if ok else "FAIL")
