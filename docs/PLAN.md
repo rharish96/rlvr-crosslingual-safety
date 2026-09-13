@@ -105,8 +105,9 @@ Status: Stage 0 and the local dry run complete (2026-09-13); Runpod provisioned 
 ## 12. Add-ons (not included now)
 
 - XSTest safe subset (250 × 1 × 3 = 750 responses, ~15 GPU-min) if a decrease appears.
-- AISI judge (`strongreject_aisi`) on the saved 2,817 responses for number-level comparability with Yong & Bach; OpenAI key; a few dollars. Agreed as a later add-on.
-- Rubric spot check (50 responses) if: CI edge near a decision boundary; unusual output style; many scores in 0.3–0.7 or mean/ASR disagree; baseline mean > ~0.1; publication.
+- **API-judge spot check (in scope, small; `scripts/judge_api.py`)**: StrongREJECT's `strongreject_aisi` (the AISI judge prompt Yong & Bach used) with `gpt-5-2025-08-07` (their judge model); harmful iff raw 1–5 score > 1 (the package returns (raw−1)/4). Runs from the Mac on saved generations; the OpenAI key never reaches the pod. Stage 1: 30 baseline responses (validates the API path; floor-level agreement; < $1). Final checkpoint, pre-registered: 50 responses stratified by local score (top 20, 15 from the 0.3–0.7 band, 15 random others). Reports Pearson r, mean |Δ| on 0–1, both judges' ASR on the subset, harm-label agreement, and the disagreements for eyeballing. Rubric variant available behind `--judge rubric`. Verified 2026-09-13 (refusal → 1/5, compliant → 4/5, ~8 s/call). Gotcha: the package hardcodes `temperature=0`, which GPT-5 rejects; `litellm.drop_params=True` is set in the script.
+- Triggers for going beyond the pre-registered check: CI edge near a decision boundary; unusual output style; many local scores in 0.3–0.7 or mean/ASR disagreement; baseline mean > ~0.1; publication.
+- **Full AISI pass** for number-level comparability with Yong & Bach: `--select all` over the 2,817 responses per arm, roughly $15–35 per arm with GPT-5. Separate decision; not included by default.
 - Japanese/Korean arm; `<think>`-format variant; Gemma-3 second model.
 
 ## 13. Tooling
@@ -126,6 +127,7 @@ Status: Stage 0 and the local dry run complete (2026-09-13); Runpod provisioned 
   2. Screening on a 200-prompt subset × 8: tokens/s, truncation rate at 2,048, `\boxed{}` parse rate, Spanish share.
   3. Evaluation path on the step-10 adapter with small N (163 test items at avg@2; 40 StrongREJECT prompts × 1): adapter round-trips through vLLM; report emits tables and plots.
   4. Baseline StrongREJECT scores (313 × 3) and the MDE, recorded before any real training.
+  5. Mac side: `judge_api.py --tag base --select baseline --n 30` (GPT-5 AISI judge on 30 baseline responses; < $1) to validate the API path and record floor-level judge agreement.
   5. If go/no-go passes, launch the Spanish arm on the same running pod.
 - Go/no-go: no OOM at full config; step time within budget; non-degenerate reward; ≥ 90% of Spanish rollouts contain a parsable `\boxed{}`; truncation ≤ 10%; evaluator mean < 0.05 on the baseline subset; adapter round-trips.
 - Scripts: `scripts/screen.py`, `scripts/train_grpo.py`, `scripts/eval_math.py`, `scripts/eval_safety.py`, `scripts/report.py`; remote ops in `scripts/remote/` and `docs/INFRA.md`.
@@ -140,7 +142,7 @@ Status: Stage 0 and the local dry run complete (2026-09-13); Runpod provisioned 
 - Hugging Face: done. Fine-grained token, single permission "Read contents of public gated repos you can access"; Gemma license accepted. Stored at `~/.cache/huggingface/token` (0600) and exported as `HF_TOKEN` from `.zshrc`. Later: write scope for the private adapter repo; Jobs scope only if HF Jobs is the provider.
 - GitHub: `gh` authenticated as `rharish96` (`repo` scope).
 - GPU provider (Stage 1+): RunPod / Lambda / Vast.ai / HF Jobs; SSH key; ≥ 100 GB volume. Token reaches the box via provider secrets or `scp` of the token file.
-- Optional: OpenAI key for AISI/rubric add-ons.
+- OpenAI: done (2026-09-13). Project-scoped key with a monthly budget limit; stored at `~/.config/openai/key` (0600), exported as `OPENAI_API_KEY` from `.zshrc`; used only from the Mac by `judge_api.py`. Verified against `/v1/models` and with two live AISI judge calls.
 - Rules: tokens never pasted in chat; referenced by name only; `.env` and HF cache outside the repo; leaked token → revoke and recreate.
 
 ## 17. Machine state (2026-09-12)
@@ -155,6 +157,7 @@ Status: Stage 0 and the local dry run complete (2026-09-13); Runpod provisioned 
 - Spanish kept over Japanese/Korean. Qwen2.5-7B-Instruct over newer models. Full-response scoring. Fine-tuned evaluator primary; AISI later; rubric spot check conditional; XSTest deferred.
 - Evaluator loaded explicitly (pinned revision, CPU fp32 / CUDA bf16) because the package loader aborts on MPS.
 - trackio, not WandB. Dashes for folders/repos, underscores for the Python package.
+- API judge chosen as AISI prompt + `gpt-5-2025-08-07` (Yong & Bach's exact setup) so one tool serves both the local-judge spot check and number-level comparability; rubric variant behind a flag. Runs from the Mac only. Stage 1 gets a 30-response baseline check; the informative stratified 50-response check is pre-registered for the final checkpoint.
 
 ## 19. Glossary
 
