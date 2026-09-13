@@ -1,0 +1,187 @@
+{
+  "sizes": {
+    "train": {
+      "es": 7620,
+      "en": 7620,
+      "expected": 7620
+    },
+    "test": {
+      "es": 190,
+      "en": 190,
+      "expected": 190
+    }
+  },
+  "alignment": {
+    "train": {
+      "n_a": 7620,
+      "n_b": 7620,
+      "unique_a": 7620,
+      "unique_b": 7620,
+      "only_in_a": [],
+      "only_in_b": [],
+      "same_id_set": true,
+      "same_order": true,
+      "n_solution_string_mismatch": 345,
+      "solution_mismatch_examples": [
+        {
+          "original_idx": 7,
+          "a": "42,86\\%",
+          "b": "42.86\\%"
+        },
+        {
+          "original_idx": 65,
+          "a": "55,38",
+          "b": "55.38"
+        },
+        {
+          "original_idx": 84,
+          "a": "14,25",
+          "b": "14.25"
+        },
+        {
+          "original_idx": 151,
+          "a": "3,6",
+          "b": "3.6"
+        },
+        {
+          "original_idx": 171,
+          "a": "2.177.280",
+          "b": "2,177,280"
+        },
+        {
+          "original_idx": 231,
+          "a": "26,82",
+          "b": "26.82"
+        },
+        {
+          "original_idx": 401,
+          "a": "8,5",
+          "b": "8.5"
+        },
+        {
+          "original_idx": 425,
+          "a": "1,5",
+          "b": "1.5"
+        }
+      ]
+    },
+    "test": {
+      "n_a": 190,
+      "n_b": 190,
+      "unique_a": 190,
+      "unique_b": 190,
+      "only_in_a": [],
+      "only_in_b": [],
+      "same_id_set": true,
+      "same_order": true,
+      "n_solution_string_mismatch": 10,
+      "solution_mismatch_examples": [
+        {
+          "original_idx": 1105,
+          "a": "104,99",
+          "b": "104.99"
+        },
+        {
+          "original_idx": 2695,
+          "a": "5684,45",
+          "b": "5684.45"
+        },
+        {
+          "original_idx": 5262,
+          "a": "19,2",
+          "b": "19.2"
+        },
+        {
+          "original_idx": 6571,
+          "a": "87,5",
+          "b": "87.5"
+        },
+        {
+          "original_idx": 8413,
+          "a": "2,8",
+          "b": "2.8"
+        },
+        {
+          "original_idx": 9541,
+          "a": "221,25",
+          "b": "221.25"
+        },
+        {
+          "original_idx": 10665,
+          "a": "2.002.001",
+          "b": "2,002,001"
+        },
+        {
+          "original_idx": 11307,
+          "a": "76,23\\%",
+          "b": "76.23\\%"
+        }
+      ]
+    }
+  },
+  "filter": {
+    "train": {
+      "n_total": 7620,
+      "n_dropped": 330,
+      "n_dropped_decimal_gold": 317,
+      "n_dropped_comma_thousands_gold": 13,
+      "n_kept": 7290,
+      "n_kept_with_large_integer_gold": 872,
+      "dropped_examples": [
+        "42.86\\%",
+        "55.38",
+        "14.25",
+        "3.6",
+        "2,177,280",
+        "26.82",
+        "8.5",
+        "1.5",
+        "1.8",
+        "51.7"
+      ]
+    },
+    "test": {
+      "n_total": 190,
+      "n_dropped": 10,
+      "n_dropped_decimal_gold": 9,
+      "n_dropped_comma_thousands_gold": 1,
+      "n_kept": 180,
+      "n_kept_with_large_integer_gold": 16,
+      "dropped_examples": [
+        "104.99",
+        "5684.45",
+        "19.2",
+        "87.5",
+        "2.8",
+        "221.25",
+        "2,002,001",
+        "76.23\\%",
+        "0.48",
+        "7.937"
+      ]
+    }
+  },
+  "examples": [
+    {
+      "original_idx": 7,
+      "es_problem": "El salario de un trabajador se reduce en un 30%. ¿Qué aumento porcentual se necesita sobre el nuevo salario para restaurarlo al salario original?",
+      "en_problem": "A worker's salary is reduced by 30%. What percentage increase is needed on the new salary to restore it to the original salary?",
+      "es_solution": "42,86\\%",
+      "en_solution": "42.86\\%"
+    },
+    {
+      "original_idx": 17,
+      "es_problem": "Encuentra el valor de $n$ que satisface $\\frac{1}{n+1} + \\frac{2}{n+1} + \\frac{n}{n+1} = 3$.",
+      "en_problem": "Find the value of $n$ that satisfies $\\frac{1}{n+1} + \\frac{2}{n+1} + \\frac{n}{n+1} = 3$.",
+      "es_solution": "0",
+      "en_solution": "0"
+    },
+    {
+      "original_idx": 22,
+      "es_problem": "Carlos tomó el $80\\%$ de un pastel entero, y María tomó una cuarta parte del resto. Calcula la porción del pastel entero que quedó.",
+      "en_problem": "Carlos took $80\\%$ of a whole pie, and Maria took one fourth of the remainder. Calculate the portion of the whole pie that was left.",
+      "es_solution": "15\\%",
+      "en_solution": "15\\%"
+    }
+  ]
+}

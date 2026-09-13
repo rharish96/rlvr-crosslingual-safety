@@ -1,0 +1,128 @@
+[
+  {
+    "gold": "\\frac{7}{2}",
+    "boxed": "3,5",
+    "reward": 1.0,
+    "note": "es decimal comma vs fraction gold"
+  },
+  {
+    "gold": "\\frac{7}{2}",
+    "boxed": "3{,}5",
+    "reward": 1.0,
+    "note": "es LaTeX decimal comma"
+  },
+  {
+    "gold": "\\frac{1}{4}",
+    "boxed": "0,25",
+    "reward": 1.0,
+    "note": "es decimal comma"
+  },
+  {
+    "gold": "10500",
+    "boxed": "10.500",
+    "reward": 1.0,
+    "note": "es thousands dot"
+  },
+  {
+    "gold": "10500",
+    "boxed": "10\\,500",
+    "reward": 1.0,
+    "note": "LaTeX thin-space thousands"
+  },
+  {
+    "gold": "10500",
+    "boxed": "10,500",
+    "reward": 1.0,
+    "note": "en thousands comma"
+  },
+  {
+    "gold": "10500",
+    "boxed": "10 500",
+    "reward": 1.0,
+    "note": "space thousands"
+  },
+  {
+    "gold": "2177280",
+    "boxed": "2.177.280",
+    "reward": 1.0,
+    "note": "es thousands dots, 7 digits"
+  },
+  {
+    "gold": "120^\\circ",
+    "boxed": "120",
+    "reward": 1.0,
+    "note": "degree symbol dropped"
+  },
+  {
+    "gold": "120^\\circ",
+    "boxed": "120°",
+    "reward": 1.0,
+    "note": "unicode degree"
+  },
+  {
+    "gold": "\\$70",
+    "boxed": "70",
+    "reward": 1.0,
+    "note": "currency stripped"
+  },
+  {
+    "gold": "70",
+    "boxed": "\\$70",
+    "reward": 1.0,
+    "note": "currency added"
+  },
+  {
+    "gold": "5",
+    "boxed": "5 cm",
+    "reward": 1.0,
+    "note": "unit added"
+  },
+  {
+    "gold": "\\sqrt{2}",
+    "boxed": "1.414",
+    "reward": 0.0,
+    "note": "decimal approximation of radical"
+  },
+  {
+    "gold": "\\sqrt{2}",
+    "boxed": "\\sqrt{2}",
+    "reward": 1.0,
+    "note": "exact radical"
+  },
+  {
+    "gold": "42",
+    "boxed": "\\text{42}",
+    "reward": 1.0,
+    "note": "text wrapper"
+  },
+  {
+    "gold": "42",
+    "boxed": "42.",
+    "reward": 1.0,
+    "note": "trailing period"
+  },
+  {
+    "gold": "42",
+    "boxed": "$42$",
+    "reward": 1.0,
+    "note": "inner dollars"
+  },
+  {
+    "gold": "-3",
+    "boxed": "−3",
+    "reward": 1.0,
+    "note": "unicode minus"
+  },
+  {
+    "gold": "(1,2)",
+    "boxed": "(1, 2)",
+    "reward": 1.0,
+    "note": "tuple spacing"
+  },
+  {
+    "gold": "\\frac{1}{2}",
+    "boxed": "1/2",
+    "reward": 1.0,
+    "note": "slash fraction"
+  }
+]
