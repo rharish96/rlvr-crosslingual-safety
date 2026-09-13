@@ -128,7 +128,7 @@ Status: Stage 0 and the local dry run complete (2026-09-13); Runpod provisioned 
   3. Evaluation path on the step-10 adapter with small N (163 test items at avg@2; 40 StrongREJECT prompts × 1): adapter round-trips through vLLM; report emits tables and plots.
   4. Baseline StrongREJECT scores (313 × 3) and the MDE, recorded before any real training.
   5. Mac side: `judge_api.py --tag base --select baseline --n 30` (GPT-5 AISI judge on 30 baseline responses; < $1) to validate the API path and record floor-level judge agreement.
-  5. If go/no-go passes, launch the Spanish arm on the same running pod.
+  6. If go/no-go passes, launch the Spanish arm on the same running pod.
 - Go/no-go: no OOM at full config; step time within budget; non-degenerate reward; ≥ 90% of Spanish rollouts contain a parsable `\boxed{}`; truncation ≤ 10%; evaluator mean < 0.05 on the baseline subset; adapter round-trips.
 - Scripts: `scripts/screen.py`, `scripts/train_grpo.py`, `scripts/eval_math.py`, `scripts/eval_safety.py`, `scripts/report.py`; remote ops in `scripts/remote/` and `docs/INFRA.md`.
 
