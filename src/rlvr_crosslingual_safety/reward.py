@@ -1,6 +1,9 @@
 """Binary correctness reward: 1 iff the last \\boxed{...} in the completion matches the English gold.
 
-Uses Math-Verify (huggingface/Math-Verify) for symbolic/numeric equivalence. Identical for both arms.
+Plain Math-Verify (huggingface/Math-Verify) equivalence, no custom normalization. Locale-sensitive
+golds (decimals, comma-grouped numbers, integers >= 1000, fractions) are excluded from the pool
+upstream (see data.DROP_RULES) so Spanish number formatting cannot produce false negatives.
+Identical for both arms.
 """
 
 from __future__ import annotations
@@ -32,33 +35,6 @@ def extract_last_boxed(text: str) -> str | None:
     return text[i : j - 1].strip()
 
 
-import re
-
-# Pure-number outputs written with locale grouping/decimal marks. Applied to the boxed string only,
-# identically in both arms. Decimal-point and comma-thousands golds are excluded from the pool, so
-# these rewrites can only turn a locale-formatted correct integer/decimal into a parseable one.
-_THOUSANDS_DOT_RE = re.compile(r"^-?\d{1,3}(?:\.\d{3})+$")  # 10.500  2.177.280
-_THOUSANDS_COMMA_RE = re.compile(r"^-?\d{1,3}(?:,\d{3})+$")  # 10,500  (en grouping; Math-Verify native)
-_THOUSANDS_THIN_RE = re.compile(r"^-?\d{1,3}(?:(?:\\,|\\;|\\ |\s|\u202f|\u00a0)\d{3})+$")  # 10\,500  10 500
-_DECIMAL_COMMA_RE = re.compile(r"^-?\d+(?:\{,\}|,)\d+$")  # 3,5  3{,}5  0,25
-
-
-def normalize_boxed(boxed: str, gold: str) -> str:
-    s = boxed.strip()
-    if _THOUSANDS_DOT_RE.match(s):
-        return s.replace(".", "")
-    if _THOUSANDS_THIN_RE.match(s):
-        return re.sub(r"\\[,; ]|\s|\u202f|\u00a0", "", s)
-    if _THOUSANDS_COMMA_RE.match(s):
-        # "10,500": ambiguous between en grouping (10500) and es decimal (10.5). Decimal golds are
-        # excluded from the pool, so only the integer reading can be correct; leave it to Math-Verify.
-        return s
-    if _DECIMAL_COMMA_RE.match(s) and "," not in gold:
-        # gold has no comma, so it is not a tuple/list; read the comma as a decimal mark
-        return s.replace("{,}", ".").replace(",", ".")
-    return s
-
-
 def _wrap(s: str) -> str:
     s = s.strip()
     if s.startswith(("$", "\\(", "\\[")):
@@ -78,7 +54,7 @@ def is_correct(completion: str, gold: str) -> bool:
     gold_parsed = parse_gold(gold)
     if not gold_parsed:
         return False
-    ans_parsed = parse(_wrap(normalize_boxed(boxed, gold)), extraction_config=_EXTRACTION)
+    ans_parsed = parse(_wrap(boxed), extraction_config=_EXTRACTION)
     if not ans_parsed:
         return False
     try:

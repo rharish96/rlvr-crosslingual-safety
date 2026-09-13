@@ -13,17 +13,17 @@ All checks passed. No GPU used. Nothing here depends on a trained model.
 - mAceReason-Math @ `a9b8d7e`; English reconstructed from `nvidia/AceReason-Math` @ `a5cc41c`.
 - es/en parallel `train`: 7,620 each, identical `original_idx` set and order. `test`: 190 each, identical.
 - 345 train solutions differ as strings between es and en; all are localization (`42,86\%` vs `42.86\%`, `2.177.280` vs `2,177,280`, `120°` vs `120^\circ`, `\$70` vs `$70`), which is why the English gold is used.
-- Locale-sensitive gold filter (English gold with a decimal or comma thousands): train drops 330 (317 + 13) → **7,290 kept**; test drops 10 (9 + 1) → **180 kept**.
-- Kept gold types (train): 6,160 integers (85%), 825 expressions/text, 227 other, 94 fractions. 872 kept golds are integers ≥ 1000.
+- Locale-sensitive gold filter (English gold with a decimal, comma grouping, an integer ≥ 1000, or a fraction): train drops 1,290 (317 + 13 + 872 + 88) → **6,330 kept**; test drops 27 (9 + 1 + 16 + 1) → **163 kept**.
+- Before the ≥ 1000 and fraction rules were added, gold types (train) were 6,160 integers (85%), 825 expressions/text, 227 other, 94 fractions, with 872 integers ≥ 1000.
 - Only 45 Spanish problems (0.6%) contain a `d.ddd` thousands pattern in the prompt text, so the prompts rarely prime Spanish grouping.
 
 ## Reward (`reward.py`, `tests/test_reward.py`, `scripts/stage0_reward_check.py`)
 
 - Math-Verify handles: `42`≡`42.0`, `\frac{7}{2}`≡`3.5`≡`7/2`, `5\sqrt{2}`≡`\sqrt{50}`, `x^2+1`≡`1+x^2`, `(1,2)`≡`(1, 2)`, units/currency/degree stripped, `\text{42}`, unicode minus, `10,500`≡`10500`.
 - Math-Verify does **not** handle Spanish-locale numbers: `3,5` parses as the set {3, 5}; `10.500` as 10.5; `2.177.280` fails.
-- Added a symmetric, pattern-based normalization of the boxed string (thousands dot/space/thin-space → integer; lone decimal comma → point when the gold has no comma). After it, every locale case scores correctly; the only remaining 0 in the recorded table is `\sqrt{2}` vs `1.414`, which is correct behaviour.
+- A symmetric, pattern-based normalization of the boxed string was prototyped and passed 36 tests, then **removed by decision (2026-09-13)** in favour of dropping every gold a Spanish-writing model might format with a comma or thousands dot. The reward is now plain Math-Verify. `results/stage0_reward_check.json` records the locale cases scoring 0, which is the evidence for the filter.
 - Truncated completions (unbalanced `\boxed{`) score 0. Last box wins.
-- 36 reward tests pass.
+- 20 reward tests and 17 filter tests pass.
 
 ## Language ID (`langid.py`, `tests/test_langid.py`)
 
@@ -39,13 +39,13 @@ All checks passed. No GPU used. Nothing here depends on a trained model.
 ## Statistics (`stats.py`, `tests/test_stats.py`)
 
 - Paired bootstrap over items for Δ with 95% CI; ASR at a threshold; MDE by an analytic formula and by within-item resampling under H0.
-- Synthetic floor baseline (313 × 3, mean 0.023): MDE ≈ 0.003–0.004. Synthetic gate (180 × 8, p ≈ 0.4): MDE ≈ 0.05; a +5–9 pp shift is detected with the CI excluding zero.
+- Synthetic floor baseline (313 × 3, mean 0.023): MDE ≈ 0.003–0.004. Synthetic gate (180 × 8 in the test; 163 × 8 in practice, p ≈ 0.4): MDE ≈ 0.05; a +5–9 pp shift is detected with the CI excluding zero.
 - 6 stats tests pass (null coverage, shift detection, MDE sanity).
 
 ## Plan changes recorded
 
-- Test set for the gate is the 180 decimal-free items (was 190).
-- Reward normalization added (was "none"), with the evidence above.
+- Test set for the gate is the 163 locale-safe items (was 190); training pool is 6,330 (was 7,620).
+- Reward stays plain Math-Verify; locale handling moved entirely into the data filter.
 - Evaluator loading pinned and explicit.
 
 ## Next: Stage 1 (GPU, Qwen2.5-3B-Instruct)

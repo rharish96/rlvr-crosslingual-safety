@@ -40,14 +40,14 @@ Status: Stage 0 complete (2026-09-12). See `docs/STAGE0_REPORT.md`.
 - Language choice: Spanish kept (close enough to English to pass the gate and stay in-language). Japanese/Korean are candidates for a later distance-contrast arm; Chinese avoided as Qwen's home language.
 - Answer verification, identical for both arms (`reward.py`):
   - Gold answers are the English reference solutions (the dataset localizes number formats in translated solutions, e.g. `42,86\%` vs `42.86\%`).
-  - Problems whose English gold contains a decimal (`3.5`, `.185`) or comma thousands grouping (`2,177,280`) are dropped for both arms. Stage 0 counts: train 330 dropped (317 decimal, 13 comma) → 7,290 kept; test 10 dropped → 180 kept. Kept gold types (train): 6,160 integers, 825 expressions, 227 other, 94 fractions.
-  - Reward = 1 iff the last balanced `\boxed{...}` in the completion is Math-Verify-equivalent to the gold; unbalanced (truncated) or missing box = 0.
-  - Stage 0 found Math-Verify does not read Spanish-locale numbers (`3,5` → set {3,5}; `10.500` → 10.5). Because 872 kept problems (12%) have integer golds ≥ 1000, a minimal pattern-based normalization of the boxed string is applied identically in both arms: pure thousands-dot/space/thin-space groupings are collapsed to integers; a lone decimal comma is read as a decimal point only when the gold contains no comma. Documented in `results/stage0_reward_check.json`; 36 unit tests.
+  - Locale-sensitive golds are dropped for both arms so the reward is plain Math-Verify with **no custom normalization**. Stage 0 showed Math-Verify reads Spanish-locale numbers wrongly (`3,5` → the set {3,5}; `10.500` → 10.5), so any gold a Spanish-writing model might express with a decimal comma or thousands dot is excluded: decimals (`3.5`, `.185`), comma-grouped numbers (`2,177,280`), integers ≥ 1000 (any 4+ digit run), and fractions (`\frac`, `7/2`). Stage 0 counts: train drops 1,290 (317 + 13 + 872 + 88) → **6,330 kept**; test drops 27 (9 + 1 + 16 + 1) → **163 kept**. Remaining golds are integers < 1000, symbolic expressions, tuples/intervals, and text.
+  - Reward = 1 iff the last balanced `\boxed{...}` in the completion is Math-Verify-equivalent to the English gold; unbalanced (truncated) or missing box = 0. 20 reward tests + 17 filter tests.
+  - Decision (2026-09-13): a symmetric normalization of the boxed string was prototyped and tested in Stage 0, then removed in favour of dropping the affected golds, trading ~13% of the pool and 17 test items for a reward with zero custom logic.
 - Response language: `langdetect` (as in GRPO Beyond English) after stripping LaTeX, equations, numerals and code; responses with < 20 prose characters are "unknown".
 
 ## 5. Training subset
 
-1. From the 7,290 kept parallel `train` IDs, sample 4,000 by ID (shared by both arms).
+1. From the 6,330 kept parallel `train` IDs, sample 4,000 by ID (shared by both arms).
 2. For each, sample 8 baseline solutions from the untrained model with the training template, temperature 1.0, 2,048 max tokens.
 3. Score with the reward above; eyeball ~20 Spanish outputs for parsing failures.
 4. Keep problems solved 2–6 of 8 (25–75%), targeting 1,500–2,000. All-correct or all-wrong groups have zero GRPO advantage and no gradient.
@@ -65,9 +65,9 @@ Status: Stage 0 complete (2026-09-12). See `docs/STAGE0_REPORT.md`.
 
 ## 7. Gate: did RLVR work?
 
-- Evaluate each checkpoint on the 180 kept Spanish test items at avg@8 with the training template.
+- Evaluate each checkpoint on the 163 kept Spanish test items at avg@8 with the training template.
 - Report accuracy with a paired-bootstrap 95% CI over items, training-reward curve, response length, truncation rate, share of outputs detected as Spanish.
-- Gate: final avg@8 significantly above baseline (paired bootstrap CI excludes zero) and a rising reward curve. Effect size reported; with 180 × 8 samples the smallest detectable gain is roughly 3–5 pp. No threshold is borrowed from the base papers, which have no gate.
+- Gate: final avg@8 significantly above baseline (paired bootstrap CI excludes zero) and a rising reward curve. Effect size reported; with 163 × 8 samples the smallest detectable gain is roughly 4–5 pp. No threshold is borrowed from the base papers, which have no gate.
 - If the CI includes zero, extend to 500 steps and re-test once, before any safety score is examined.
 - If `langdetect` shows frequent English responses to Spanish prompts, describe the intervention as "RLVR on Spanish-language prompts."
 
@@ -119,7 +119,7 @@ Status: Stage 0 complete (2026-09-12). See `docs/STAGE0_REPORT.md`.
 ## 14. Pipeline tests
 
 - Stage 0 (local CPU) — complete; see `docs/STAGE0_REPORT.md`.
-- Stage 1 (GPU, Qwen2.5-3B-Instruct, ~1 h): screen 200 × 8 (tokens/s, truncation at 2,048); 20 GRPO steps at 4 × 8 with adapters at 10/20; check reward non-degenerate, loss finite, no OOM, adapter loads in vLLM; evaluate baseline and step-20 on 180 test items (avg@2) and 40 StrongREJECT prompts × 1; run evaluator; compute Δ/CI/MDE end to end; time every stage.
+- Stage 1 (GPU, Qwen2.5-3B-Instruct, ~1 h): screen 200 × 8 (tokens/s, truncation at 2,048); 20 GRPO steps at 4 × 8 with adapters at 10/20; check reward non-degenerate, loss finite, no OOM, adapter loads in vLLM; evaluate baseline and step-20 on 163 test items (avg@2) and 40 StrongREJECT prompts × 1; run evaluator; compute Δ/CI/MDE end to end; time every stage.
 - Stage 2 (GPU, Qwen2.5-7B-Instruct, ~30 min): 10 steps at full config; confirm memory; measure step time; compute baseline StrongREJECT + MDE before training; launch Spanish arm.
 - Go/no-go: no OOM; step time within budget; non-degenerate reward; ≥ 90% of Spanish rollouts parse a `\boxed{}`; truncation ≤ 10%; evaluator mean < 0.05 on the baseline subset; adapter round-trips.
 
@@ -143,8 +143,8 @@ Status: Stage 0 complete (2026-09-12). See `docs/STAGE0_REPORT.md`.
 ## 18. Decision log
 
 - SESOI dropped for CI + MDE; capability gate changed from fixed 5 pp to CI-excludes-zero + rising reward.
-- English gold for both arms; decimal and comma-thousands golds dropped (7,620 → 7,290 train; 190 → 180 test).
-- "No custom normalization" reversed after Stage 0 evidence: Math-Verify does not parse Spanish-locale numbers and 12% of kept golds are integers ≥ 1000; a minimal symmetric normalization of the boxed string was added and unit-tested.
+- English gold for both arms; locale-sensitive golds dropped (decimals, comma grouping, integers ≥ 1000, fractions): 7,620 → 6,330 train; 190 → 163 test.
+- Normalization considered and rejected: Math-Verify does not parse Spanish-locale numbers; a symmetric boxed-string normalization was prototyped in Stage 0, then removed in favour of dropping the affected golds so the reward has no custom logic (user decision 2026-09-13).
 - Spanish kept over Japanese/Korean. Qwen2.5-7B-Instruct over newer models. Full-response scoring. Fine-tuned evaluator primary; AISI later; rubric spot check conditional; XSTest deferred.
 - Evaluator loaded explicitly (pinned revision, CPU fp32 / CUDA bf16) because the package loader aborts on MPS.
 - trackio, not WandB. Dashes for folders/repos, underscores for the Python package.

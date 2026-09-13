@@ -2,31 +2,31 @@
   {
     "gold": "\\frac{7}{2}",
     "boxed": "3,5",
-    "reward": 1.0,
+    "reward": 0.0,
     "note": "es decimal comma vs fraction gold"
   },
   {
     "gold": "\\frac{7}{2}",
     "boxed": "3{,}5",
-    "reward": 1.0,
+    "reward": 0.0,
     "note": "es LaTeX decimal comma"
   },
   {
     "gold": "\\frac{1}{4}",
     "boxed": "0,25",
-    "reward": 1.0,
+    "reward": 0.0,
     "note": "es decimal comma"
   },
   {
     "gold": "10500",
     "boxed": "10.500",
-    "reward": 1.0,
+    "reward": 0.0,
     "note": "es thousands dot"
   },
   {
     "gold": "10500",
     "boxed": "10\\,500",
-    "reward": 1.0,
+    "reward": 0.0,
     "note": "LaTeX thin-space thousands"
   },
   {
@@ -38,13 +38,13 @@
   {
     "gold": "10500",
     "boxed": "10 500",
-    "reward": 1.0,
+    "reward": 0.0,
     "note": "space thousands"
   },
   {
     "gold": "2177280",
     "boxed": "2.177.280",
-    "reward": 1.0,
+    "reward": 0.0,
     "note": "es thousands dots, 7 digits"
   },
   {

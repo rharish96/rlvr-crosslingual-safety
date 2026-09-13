@@ -42,24 +42,16 @@ def test_reward_core(gold, boxed, expected):
 
 
 @pytest.mark.parametrize(
-    "gold, boxed, expected",
+    "gold, boxed",
     [
-        ("10500", "10.500", 1.0),  # es thousands dot
-        ("2177280", "2.177.280", 1.0),
-        ("10500", r"10\,500", 1.0),  # LaTeX thin space
-        ("10500", "10 500", 1.0),
-        ("10500", "10,500", 1.0),  # en thousands comma (Math-Verify native)
-        (r"\frac{7}{2}", "3,5", 1.0),  # es decimal comma vs fraction gold
-        (r"\frac{7}{2}", "3{,}5", 1.0),
-        (r"\frac{1}{4}", "0,25", 1.0),
-        (r"\frac{7}{2}", "3,4", 0.0),
-        ("(1,2)", "1,2", 1.0),  # gold has a comma: no decimal rewrite; Math-Verify natively equates set/tuple
-        ("3,5", "3,5", 1.0),  # multi-answer gold with comma: untouched, still matches
-        ("10.5", "10.500", 0.0),  # sanity: a decimal gold would be misread -- which is why they are dropped
+        ("10500", "10.500"),  # es thousands dot -> Math-Verify reads 10.5
+        (r"\frac{7}{2}", "3,5"),  # es decimal comma -> Math-Verify reads the set {3,5}
+        ("2177280", "2.177.280"),  # es thousands dots
     ],
 )
-def test_locale_normalization(gold, boxed, expected):
-    assert reward(f"\\boxed{{{boxed}}}", gold) == expected
+def test_locale_formats_are_not_understood(gold, boxed):
+    """Documents WHY such golds are excluded from the pool (data.DROP_RULES): no normalization here."""
+    assert reward(f"\\boxed{{{boxed}}}", gold) == 0.0
 
 
 def test_no_boxed_is_zero():

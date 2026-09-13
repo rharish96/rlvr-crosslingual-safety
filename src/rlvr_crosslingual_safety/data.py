@@ -112,52 +112,46 @@ def align_parallel(a: Dataset, b: Dataset) -> dict:
     return summary
 
 
+# Locale-sensitive gold answers are excluded from the pool for BOTH arms so the reward can be plain
+# Math-Verify against the English gold with no custom normalization. Stage 0 showed Math-Verify
+# reads Spanish-locale numbers wrongly ("3,5" -> the set {3,5}; "10.500" -> 10.5), so any gold a
+# Spanish-writing model might express with a decimal comma or thousands dot is removed.
 _DECIMAL_RE = re.compile(r"\d\.\d|(?<!\d)\.\d")  # 3.5 or .185
 _COMMA_THOUSANDS_RE = re.compile(r"\d,\d{3}(?!\d)")  # 2,177,280
-_INT_GE_1000_RE = re.compile(r"(?<![\d.,])\d{4,}(?![\d.,])")
+_INT_GE_1000_RE = re.compile(r"(?<![\d.,])\d{4,}(?![\d.,])")  # 10500 (model might write 10.500)
+_FRACTION_RE = re.compile(r"\\[dt]?frac|(?<![\w^])-?\d+/\d+(?![\w])")  # \frac{7}{2}, 7/2 (model might write 3,5)
 
-
-def has_decimal_gold(solution: str) -> bool:
-    """True if the (English) gold answer contains a decimal number like 3.5 or .185."""
-    return bool(_DECIMAL_RE.search(solution))
-
-
-def has_comma_thousands_gold(solution: str) -> bool:
-    """True if the (English) gold uses comma thousands separators like 2,177,280."""
-    return bool(_COMMA_THOUSANDS_RE.search(solution))
-
-
-def has_large_integer_gold(solution: str) -> bool:
-    """True if the gold contains a plain integer >= 1000 (Spanish output might write 1.000)."""
-    return bool(_INT_GE_1000_RE.search(solution))
+DROP_RULES = (
+    ("decimal", _DECIMAL_RE),
+    ("comma_thousands", _COMMA_THOUSANDS_RE),
+    ("integer_ge_1000", _INT_GE_1000_RE),
+    ("fraction", _FRACTION_RE),
+)
 
 
 def drop_reason(solution: str) -> str | None:
     """Why a problem is excluded from the pool (locale-sensitive gold), or None to keep it."""
-    if has_decimal_gold(solution):
-        return "decimal"
-    if has_comma_thousands_gold(solution):
-        return "comma_thousands"
+    for name, rx in DROP_RULES:
+        if rx.search(solution):
+            return name
     return None
 
 
 def filter_ids(en_split: Dataset) -> dict:
-    """Split parallel IDs into kept vs. dropped (locale-sensitive gold), with counts."""
+    """Split parallel IDs into kept vs. dropped (locale-sensitive gold), with counts per rule."""
     ids = list(en_split["original_idx"])
     sols = list(en_split["solution"])
     reasons = {i: drop_reason(s) for i, s in zip(ids, sols)}
     dropped = [i for i in ids if reasons[i]]
     kept = [i for i in ids if not reasons[i]]
-    large = [i for i, s in zip(ids, sols) if not reasons[i] and has_large_integer_gold(s)]
     sol_by_id = dict(zip(ids, sols))
+    per_rule = {name: sum(1 for i in dropped if reasons[i] == name) for name, _ in DROP_RULES}
     return {
         "n_total": len(ids),
         "n_dropped": len(dropped),
-        "n_dropped_decimal_gold": sum(1 for i in dropped if reasons[i] == "decimal"),
-        "n_dropped_comma_thousands_gold": sum(1 for i in dropped if reasons[i] == "comma_thousands"),
+        "n_dropped_by_rule": per_rule,
         "n_kept": len(kept),
-        "n_kept_with_large_integer_gold": len(large),
-        "dropped_examples": [sol_by_id[i] for i in dropped[:10]],
+        "dropped_examples": {name: [sol_by_id[i] for i in dropped if reasons[i] == name][:5] for name, _ in DROP_RULES},
         "kept_ids": kept,
         "dropped_ids": dropped,
     }

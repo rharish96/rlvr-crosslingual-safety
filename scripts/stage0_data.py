@@ -57,11 +57,10 @@ def main() -> None:
         al = summary["alignment"][split]
         print(
             f"{split}: n={f['n_total']} kept={f['n_kept']} dropped={f['n_dropped']} "
-            f"(decimal={f['n_dropped_decimal_gold']}, comma_thousands={f['n_dropped_comma_thousands_gold']}) "
-            f"kept_large_int={f['n_kept_with_large_integer_gold']} | id_set_equal={al['same_id_set']} "
+            f"by_rule={f['n_dropped_by_rule']} | id_set_equal={al['same_id_set']} "
             f"same_order={al['same_order']} sol_str_mismatch={al.get('n_solution_string_mismatch')}"
         )
-    print("dropped examples (train):", summary["filter"]["train"]["dropped_examples"][:5])
+    print("dropped examples (train):", summary["filter"]["train"]["dropped_examples"])
     print("solution mismatches (train):", summary["alignment"]["train"].get("solution_mismatch_examples", [])[:3])
 
 

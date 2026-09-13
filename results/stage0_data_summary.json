@@ -122,43 +122,77 @@
   "filter": {
     "train": {
       "n_total": 7620,
-      "n_dropped": 330,
-      "n_dropped_decimal_gold": 317,
-      "n_dropped_comma_thousands_gold": 13,
-      "n_kept": 7290,
-      "n_kept_with_large_integer_gold": 872,
-      "dropped_examples": [
-        "42.86\\%",
-        "55.38",
-        "14.25",
-        "3.6",
-        "2,177,280",
-        "26.82",
-        "8.5",
-        "1.5",
-        "1.8",
-        "51.7"
-      ]
+      "n_dropped": 1290,
+      "n_dropped_by_rule": {
+        "decimal": 317,
+        "comma_thousands": 13,
+        "integer_ge_1000": 872,
+        "fraction": 88
+      },
+      "n_kept": 6330,
+      "dropped_examples": {
+        "decimal": [
+          "42.86\\%",
+          "55.38",
+          "14.25",
+          "3.6",
+          "26.82"
+        ],
+        "comma_thousands": [
+          "2,177,280",
+          "33,800",
+          "59,049",
+          "30,951",
+          "39,000"
+        ],
+        "integer_ge_1000": [
+          "1141",
+          "2677_9",
+          "174960",
+          "1769580",
+          "16777216"
+        ],
+        "fraction": [
+          "343/8",
+          "280/83",
+          "37/42",
+          "-\\frac12",
+          "12^{1/7}"
+        ]
+      }
     },
     "test": {
       "n_total": 190,
-      "n_dropped": 10,
-      "n_dropped_decimal_gold": 9,
-      "n_dropped_comma_thousands_gold": 1,
-      "n_kept": 180,
-      "n_kept_with_large_integer_gold": 16,
-      "dropped_examples": [
-        "104.99",
-        "5684.45",
-        "19.2",
-        "87.5",
-        "2.8",
-        "221.25",
-        "2,002,001",
-        "76.23\\%",
-        "0.48",
-        "7.937"
-      ]
+      "n_dropped": 27,
+      "n_dropped_by_rule": {
+        "decimal": 9,
+        "comma_thousands": 1,
+        "integer_ge_1000": 16,
+        "fraction": 1
+      },
+      "n_kept": 163,
+      "dropped_examples": {
+        "decimal": [
+          "104.99",
+          "5684.45",
+          "19.2",
+          "87.5",
+          "2.8"
+        ],
+        "comma_thousands": [
+          "2,002,001"
+        ],
+        "integer_ge_1000": [
+          "4094",
+          "55000",
+          "124886",
+          "72072",
+          "75615"
+        ],
+        "fraction": [
+          "61/243"
+        ]
+      }
     }
   },
   "examples": [
