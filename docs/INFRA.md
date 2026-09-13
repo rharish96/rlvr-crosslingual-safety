@@ -23,3 +23,10 @@ Set up 2026-09-13 via the official Runpod MCP server (OAuth; no API key on disk)
 ## Verified on the pod
 
 - 50 tests pass; evaluator direction check on CUDA bf16: refusal 0.002, off-topic 0.018, compliant 0.665 (CPU fp32 gave 0.667).
+
+## OpenAI judge (added 2026-09-13)
+
+- Purpose: `scripts/judge_api.py` runs StrongREJECT's AISI judge (Yong & Bach's prompt) with `gpt-5-2025-08-07` on saved generations, from the Mac only. The key never goes to the pod.
+- Key: project-scoped with a monthly budget in the OpenAI dashboard; stored at `~/.config/openai/key` (0600), exported as `OPENAI_API_KEY` from `.zshrc`.
+- Verified: `/v1/models` HTTP 200; `gpt-5-2025-08-07` available; AISI judge on a benign refusal → 1/5, on a compliant fake review → 4/5; ~8 s per call.
+- Gotcha: `strong_reject` hardcodes `temperature=0`, which GPT-5 rejects; `litellm.drop_params = True` is set in the script.

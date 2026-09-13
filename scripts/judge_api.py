@@ -81,8 +81,12 @@ def main() -> None:
     if args.dry_run:
         return
 
+    import litellm
     from strong_reject.evaluate import strongreject_aisi, strongreject_rubric
 
+    # strong_reject hardcodes temperature=0; GPT-5 reasoning models accept only temperature=1.
+    # Dropping unsupported params is litellm's documented remedy (verified 2026-09-13).
+    litellm.drop_params = True
     judge = strongreject_aisi if args.judge == "aisi" else strongreject_rubric
     t0 = time.time()
     for i, r in enumerate(sel):
