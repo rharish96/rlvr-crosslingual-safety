@@ -1,6 +1,6 @@
 # Cross-Lingual RLVR and English Harmful Compliance: Design and Execution Plan
 
-Status: Stage 0 complete (2026-09-12). See `docs/STAGE0_REPORT.md`.
+Status: Stage 0 and the local dry run complete (2026-09-13); Runpod provisioned (`docs/INFRA.md`). Next: Stage 1 7B pipeline test on the pod, on confirmation.
 
 ## 1. Question and hypothesis
 
@@ -111,7 +111,7 @@ Status: Stage 0 complete (2026-09-12). See `docs/STAGE0_REPORT.md`.
 
 ## 13. Tooling
 
-- Training: TRL `GRPOTrainer` + vLLM colocated + PEFT. Generation: vLLM. Scoring: Math-Verify 0.9.0, `strong_reject` @ `7a551d5`, `langdetect`.
+- Training: TRL 1.13 `GRPOTrainer` + vLLM 0.29 colocated + PEFT. TRL settings pinned explicitly: `loss_type="dapo"`, `beta=0.0`, `scale_rewards="none"`, `num_generations=8`, `per_device_train_batch_size=16` × `gradient_accumulation_steps=8` (= 16 prompts × 8 rollouts per optimizer step), `temperature=1.0`, `max_completion_length=2048`, `lr=1e-5` constant with 10 warmup steps, `max_grad_norm=1.0`, `save_only_model=False`. Generation: vLLM (transformers fallback for CPU dry runs). Scoring: Math-Verify 0.9.0, `strong_reject` @ `7a551d5`, `langdetect`.
 - Tracking: trackio (local SQLite; no WandB). Versioning: private GitHub repo `rharish96/rlvr-crosslingual-safety` for code/configs/metrics/figures; adapters and raw generations to a private HF repo or the volume.
 - Environment: `uv`-managed Python 3.12, `uv.lock` (250 packages; torch 2.13.0, transformers 5.17.0, peft 0.20.0, datasets 5.0.1; gpu extra: vllm 0.29.0, trl 1.13.0).
 - Cursor connectors: MCP servers/Plugins (`~/.cursor/mcp.json`, `${env:HF_TOKEN}` supported). The HF plugin is optional; MCP credentials do not reach terminal scripts, so the shell `HF_TOKEN` is the single source of truth. GitHub via `gh`. No official GPU-provider connectors; SSH.
@@ -119,9 +119,16 @@ Status: Stage 0 complete (2026-09-12). See `docs/STAGE0_REPORT.md`.
 ## 14. Pipeline tests
 
 - Stage 0 (local CPU) — complete; see `docs/STAGE0_REPORT.md`.
-- Stage 1 (GPU, Qwen2.5-3B-Instruct, ~1 h): screen 200 × 8 (tokens/s, truncation at 2,048); 20 GRPO steps at 4 × 8 with adapters at 10/20; check reward non-degenerate, loss finite, no OOM, adapter loads in vLLM; evaluate baseline and step-20 on 163 test items (avg@2) and 40 StrongREJECT prompts × 1; run evaluator; compute Δ/CI/MDE end to end; time every stage.
-- Stage 2 (GPU, Qwen2.5-7B-Instruct, ~30 min): 10 steps at full config; confirm memory; measure step time; compute baseline StrongREJECT + MDE before training; launch Spanish arm.
-- Go/no-go: no OOM; step time within budget; non-degenerate reward; ≥ 90% of Spanish rollouts parse a `\boxed{}`; truncation ≤ 10%; evaluator mean < 0.05 on the baseline subset; adapter round-trips.
+- Local dry run (CPU, Qwen2.5-0.5B-Instruct) — complete 2026-09-13. Every script ran end to end on the Mac with tiny settings: `screen.py` (6 problems × 2), `train_grpo.py` (1 GRPO+LoRA step, no vLLM; `checkpoint-1` with trainer state and `final` adapter saved), `eval_math.py` and `eval_safety.py` for base and adapter, `report.py` (JSON + plot). Zero cost.
+- The former Stage 1 (3B smoke test) is dropped: it could not test the 7B-specific memory question, saved about a dollar, and its results were to be discarded. Merged into:
+- **Stage 1 (GPU, Qwen2.5-7B-Instruct, one merged pipeline test, ~30–45 min ≈ $2–3)**
+  1. 10 training steps at the real config (16 × 8 × 2,048, LoRA, vLLM colocated): confirms memory fits, measures step time (the real cost number).
+  2. Screening on a 200-prompt subset × 8: tokens/s, truncation rate at 2,048, `\boxed{}` parse rate, Spanish share.
+  3. Evaluation path on the step-10 adapter with small N (163 test items at avg@2; 40 StrongREJECT prompts × 1): adapter round-trips through vLLM; report emits tables and plots.
+  4. Baseline StrongREJECT scores (313 × 3) and the MDE, recorded before any real training.
+  5. If go/no-go passes, launch the Spanish arm on the same running pod.
+- Go/no-go: no OOM at full config; step time within budget; non-degenerate reward; ≥ 90% of Spanish rollouts contain a parsable `\boxed{}`; truncation ≤ 10%; evaluator mean < 0.05 on the baseline subset; adapter round-trips.
+- Scripts: `scripts/screen.py`, `scripts/train_grpo.py`, `scripts/eval_math.py`, `scripts/eval_safety.py`, `scripts/report.py`; remote ops in `scripts/remote/` and `docs/INFRA.md`.
 
 ## 15. Cost
 

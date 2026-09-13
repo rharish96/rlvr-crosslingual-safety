@@ -26,6 +26,8 @@ dependencies = [
   "pandas>=2.2",
   "scipy>=1.13",
   "matplotlib>=3.9",
+  # RL (pure Python; runs on CPU for dry runs, GPU for real training)
+  "trl>=0.19",
   # tracking / misc
   "trackio>=0.1",
   "pyyaml>=6.0",
@@ -37,7 +39,6 @@ dependencies = [
 # Installed only on the Linux GPU box (Stage 1+).
 gpu = [
   "vllm>=0.8; sys_platform == 'linux'",
-  "trl>=0.19; sys_platform == 'linux'",
 ]
 
 [dependency-groups]

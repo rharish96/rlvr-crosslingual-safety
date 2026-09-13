@@ -2959,11 +2959,11 @@ dependencies = [
     { name = "tqdm" },
     { name = "trackio" },
     { name = "transformers" },
+    { name = "trl" },
 ]
 
 [package.optional-dependencies]
 gpu = [
-    { name = "trl", marker = "sys_platform == 'linux'" },
     { name = "vllm", marker = "sys_platform == 'linux'" },
 ]
 
@@ -2994,7 +2994,7 @@ requires-dist = [
     { name = "tqdm", specifier = ">=4.66" },
     { name = "trackio", specifier = ">=0.1" },
     { name = "transformers", specifier = ">=4.50" },
-    { name = "trl", marker = "sys_platform == 'linux' and extra == 'gpu'", specifier = ">=0.19" },
+    { name = "trl", specifier = ">=0.19" },
     { name = "vllm", marker = "sys_platform == 'linux' and extra == 'gpu'", specifier = ">=0.8" },
 ]
 provides-extras = ["gpu"]

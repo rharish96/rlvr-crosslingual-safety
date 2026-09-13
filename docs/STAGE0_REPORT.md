@@ -51,3 +51,13 @@ All checks passed. No GPU used. Nothing here depends on a trained model.
 ## Next: Stage 1 (GPU, Qwen2.5-3B-Instruct)
 
 Needs a GPU provider account and SSH access. Scripts to write on the box: screening, GRPO training (TRL 1.13 API to be checked against docs), checkpoint evaluation, StrongREJECT generation, and the end-to-end report.
+
+## Addendum: local dry run (2026-09-13, CPU, Qwen2.5-0.5B-Instruct)
+
+Purpose: catch API and config mistakes before any GPU minute is billed. TRL 1.13 API inspected directly (`GRPOConfig` fields and defaults) rather than from memory.
+
+- `screen.py --lang es --model 0.5b --backend hf --n-ids 6 --k 2 --max-tokens 96`: ran; all completions truncated (expected at 96 tokens); language shares es 1.0; pool file written.
+- `train_grpo.py ... --steps 1 --prompts-per-step 2 --num-generations 2 --max-completion 48 --no-vllm --cpu`: one step in 12 s; `checkpoint-1` (trainer state) and `final` adapter saved; `log_history.json` exported. Rewards all 0 → zero advantage → loss 0 (expected degenerate group).
+- `eval_math.py` and `eval_safety.py` for base and adapter (k=2 / n=1, tiny N): ran; evaluator scored on CPU; identical base/adapter outputs under identical seeds confirm the generation path is deterministic.
+- `report.py`: JSON report and 3-panel plot produced.
+- Artifacts deleted afterwards (nothing from the dry run is kept in `results/`).
