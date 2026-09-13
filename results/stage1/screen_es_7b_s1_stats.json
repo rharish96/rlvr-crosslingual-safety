@@ -1,0 +1,36 @@
+{
+  "lang": "es",
+  "model": "Qwen/Qwen2.5-7B-Instruct",
+  "backend": "vllm",
+  "n_problems": 200,
+  "k": 8,
+  "lo": 2,
+  "hi": 6,
+  "n_kept": 87,
+  "pass_rate_mean": 0.4175,
+  "hist_n_correct": {
+    "0": 48,
+    "1": 27,
+    "2": 19,
+    "3": 16,
+    "4": 16,
+    "5": 15,
+    "6": 21,
+    "7": 14,
+    "8": 24
+  },
+  "boxed_parse_rate": 0.991875,
+  "truncation_rate": 0.00125,
+  "mean_tokens": 770.08125,
+  "max_tokens": 2048,
+  "language_shares": {
+    "es": 0.985,
+    "en": 0.00875,
+    "zh-cn": 0.005,
+    "fr": 0.000625,
+    "ar": 0.000625
+  },
+  "gen_seconds": 54.26159954071045,
+  "completions_per_second": 29.48678279930874,
+  "tokens_per_second": 22707.218556570177
+}

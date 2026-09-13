@@ -28,12 +28,26 @@ def _load(p):
     return json.loads(Path(p).read_text()) if p else None
 
 
-def _cat_breakdown(base, final):
-    cats = sorted(set(base["category"]))
+def _align(base: dict, final: dict, key: str) -> tuple[np.ndarray, np.ndarray, list, list]:
+    """Restrict both checkpoints to the items they share (by `key`), preserving base order.
+    Full runs share all items; smoke runs may evaluate a subset on the trained checkpoint."""
+    fb = {i: row for i, row in zip(final[key], final["matrix"])}
+    keep = [k for k, i in enumerate(base[key]) if i in fb]
+    if len(keep) != len(base[key]) or len(keep) != len(final[key]):
+        print(f"[warn] {key}: base has {len(base[key])}, final has {len(final[key])}; comparing {len(keep)} shared items")
+    b = np.array([base["matrix"][k] for k in keep])
+    f = np.array([fb[base[key][k]] for k in keep])
+    ids = [base[key][k] for k in keep]
+    cats = [base["category"][k] for k in keep] if "category" in base else []
+    return b, f, ids, cats
+
+
+def _cat_breakdown(b: np.ndarray, f: np.ndarray, cats: list):
     out = {}
-    b, f = np.array(base["matrix"]), np.array(final["matrix"])
-    for c in cats:
-        m = np.array([x == c for x in base["category"]])
+    for c in sorted(set(cats)):
+        m = np.array([x == c for x in cats])
+        if m.sum() < 5:
+            continue
         r = paired_bootstrap_delta(b[m], f[m], n_boot=4000)
         out[c] = {"n": int(m.sum()), "delta": r["delta"], "ci": [r["ci_low"], r["ci_high"]]}
     return out
@@ -50,10 +64,9 @@ def main() -> None:
 
     mb, mm, mf = _load(args.math_base), _load(args.math_mid), _load(args.math_final)
     sb, sm, sf = _load(args.safety_base), _load(args.safety_mid), _load(args.safety_final)
-    assert mb["ids"] == mf["ids"] and sb["idx"] == sf["idx"], "checkpoints must be evaluated on identical items"
-
     # --- math gate ---
-    gate = paired_bootstrap_delta(np.array(mb["matrix"]), np.array(mf["matrix"]))
+    mb_m, mf_m, _, _ = _align(mb, mf, "ids")
+    gate = paired_bootstrap_delta(mb_m, mf_m)
     reward_curve = []
     if args.log_history:
         for rec in _load(args.log_history):
@@ -65,11 +78,13 @@ def main() -> None:
         curve_rose = bool(r[-q:].mean() > r[:q].mean())
     gate_pass = bool(gate["ci_excludes_zero"] and gate["delta"] > 0 and (curve_rose is not False))
 
-    # --- safety ---
-    b, f = np.array(sb["matrix"]), np.array(sf["matrix"])
+    # --- safety ---  (MDE and the baseline summary always use the FULL baseline matrix)
+    b_full = np.array(sb["matrix"])
+    b, f, _, cats = _align(sb, sf, "idx")
     delta = paired_bootstrap_delta(b, f)
-    mde_a, mde_b = mde_analytic(b), mde_bootstrap(b, n_boot=3000)
-    ckpts = {"baseline": summarize_checkpoint(b), "final": summarize_checkpoint(f)}
+    mde_a, mde_b = mde_analytic(b_full), mde_bootstrap(b_full, n_boot=3000)
+    ckpts = {"baseline": summarize_checkpoint(b_full), "final": summarize_checkpoint(f),
+             "baseline_on_shared_items": summarize_checkpoint(b)}
     if sm:
         ckpts["midpoint"] = summarize_checkpoint(np.array(sm["matrix"]))
 
@@ -80,7 +95,8 @@ def main() -> None:
                       "reward_curve_rose": curve_rose, "pass": gate_pass,
                       "language_shares_final": mf["language_shares"], "truncation_rate_final": mf["truncation_rate"]},
         "safety": {"delta": delta, "mde_analytic": mde_a, "mde_bootstrap": mde_b, "checkpoints": ckpts,
-                   "by_category_exploratory": _cat_breakdown(sb, sf)},
+                   "n_shared_items": int(b.shape[0]),
+                   "by_category_exploratory": _cat_breakdown(b, f, cats)},
         "inputs": {k: v for k, v in vars(args).items() if k not in ("out_dir",)},
     }
     out_dir = Path(args.out_dir); out_dir.mkdir(parents=True, exist_ok=True)

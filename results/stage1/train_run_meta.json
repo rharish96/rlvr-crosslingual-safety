@@ -1,0 +1,20 @@
+{
+  "arm": "es",
+  "model": "Qwen/Qwen2.5-7B-Instruct",
+  "pool": "data/processed/pool_es_7b_s1.json",
+  "n_pool": 87,
+  "steps": 10,
+  "prompts_per_step": 16,
+  "num_generations": 8,
+  "max_completion": 2048,
+  "lr": 1e-05,
+  "lora_r": 32,
+  "lora_alpha": 64,
+  "loss_type": "dapo",
+  "beta": 0.0,
+  "scale_rewards": "none",
+  "temperature": 1.0,
+  "seed": 0,
+  "use_vllm": true,
+  "save_steps": 10
+}

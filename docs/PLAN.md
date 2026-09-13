@@ -1,6 +1,6 @@
 # Cross-Lingual RLVR and English Harmful Compliance: Design and Execution Plan
 
-Status: Stage 0 and the local dry run complete (2026-09-13); Runpod provisioned (`docs/INFRA.md`). Next: Stage 1 7B pipeline test on the pod, on confirmation.
+Status: Stage 0, local dry run and **Stage 1 (7B pipeline test) complete** (2026-09-13); see `docs/STAGE1_REPORT.md`. Engineering verdict GO; one open decision (primary safety judge, STAGE1_REPORT §6) before launching the Spanish arm.
 
 ## 1. Question and hypothesis
 
@@ -56,7 +56,7 @@ Status: Stage 0 and the local dry run complete (2026-09-13); Runpod provisioned 
 
 - GRPO with bf16 LoRA on one H100 (no QLoRA).
 - LoRA: all linear layers, r = 32, α = 64, LR ≈ 1e-5 (≈10× the 1e-6 full-FT rate of GRPO Beyond English, per [LoRA Without Regret](https://thinkingmachines.ai/blog/lora/)).
-- 16 prompts × 8 rollouts = 128 rollouts per step; temperature 1.0; 2,048 max completion tokens (Stage 1 measures truncation; raise to 3,072 if > 10%).
+- 16 prompts × 8 rollouts = 128 rollouts per step; temperature 1.0; 2,048 max completion tokens (Stage 1: truncation 0.13%, so 2,048 stands). Stage 1 memory finding: micro-batch 4 completions per forward/backward (gradient accumulation 32) with vLLM at 30% GPU memory; micro-batches of 8 and 16 OOM on the 80 GB H100. Optimizer-step geometry unchanged.
 - Reward: binary correctness only. Loss: DAPO-style token-level, β = 0, no std-scaling.
 - ~250 steps (~2 epochs over the pool). Adapters saved at step 0 (base model), midpoint (~125), end (250; 500 if extended). Full trainer state saved at 250 so an extension resumes exactly.
 - Prompting: default Qwen2.5 chat template, no custom system prompt. Training-only user-turn suffix: es "Razona paso a paso y escribe la respuesta final en \boxed{}." / en "Reason step by step and put your final answer in \boxed{}." No thinking template.
@@ -120,6 +120,7 @@ Status: Stage 0 and the local dry run complete (2026-09-13); Runpod provisioned 
 ## 14. Pipeline tests
 
 - Stage 0 (local CPU) — complete; see `docs/STAGE0_REPORT.md`.
+- Stage 1 (7B pipeline test) — complete 2026-09-13; see `docs/STAGE1_REPORT.md`. Measured: 66.5 s/step, 22.7k tok/s generation, baseline es avg@8 0.412, baseline StrongREJECT mean 0.090 / ASR@0.5 10.0% (local judge), MDE 0.011–0.014, GPT-5 AISI agreement 73% on 30 with the local judge over-scoring soft refusals.
 - Local dry run (CPU, Qwen2.5-0.5B-Instruct) — complete 2026-09-13. Every script ran end to end on the Mac with tiny settings: `screen.py` (6 problems × 2), `train_grpo.py` (1 GRPO+LoRA step, no vLLM; `checkpoint-1` with trainer state and `final` adapter saved), `eval_math.py` and `eval_safety.py` for base and adapter, `report.py` (JSON + plot). Zero cost.
 - The former Stage 1 (3B smoke test) is dropped: it could not test the 7B-specific memory question, saved about a dollar, and its results were to be discarded. Merged into:
 - **Stage 1 (GPU, Qwen2.5-7B-Instruct, one merged pipeline test, ~30–45 min ≈ $2–3)**
@@ -157,6 +158,7 @@ Status: Stage 0 and the local dry run complete (2026-09-13); Runpod provisioned 
 - Spanish kept over Japanese/Korean. Qwen2.5-7B-Instruct over newer models. Full-response scoring. Fine-tuned evaluator primary; AISI later; rubric spot check conditional; XSTest deferred.
 - Evaluator loaded explicitly (pinned revision, CPU fp32 / CUDA bf16) because the package loader aborts on MPS.
 - trackio, not WandB. Dashes for folders/repos, underscores for the Python package.
+- Stage 1 (2026-09-13): micro-batch 16 → 4 after OOM; `report.py` aligns on shared items; pod replaced on same volume; `--report-to none` recommended for unattended runs (trackio shutdown hang). Open: primary judge choice (STAGE1_REPORT §6) after the local judge over-scored soft refusals vs GPT-5.
 - API judge chosen as AISI prompt + `gpt-5-2025-08-07` (Yong & Bach's exact setup) so one tool serves both the local-judge spot check and number-level comparability; rubric variant behind a flag. Runs from the Mac only. Stage 1 gets a 30-response baseline check; the informative stratified 50-response check is pre-registered for the final checkpoint.
 
 ## 19. Glossary
