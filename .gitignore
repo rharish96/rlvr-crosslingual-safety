@@ -1,0 +1,37 @@
+# secrets
+.env
+.env.*
+*.token
+.cache/
+huggingface/
+
+# python
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.ruff_cache/
+
+# data and artifacts (large / regenerable) -- keep small summaries in results/
+data/raw/
+data/cache/
+outputs/
+checkpoints/
+adapters/
+generations/
+*.safetensors
+*.bin
+*.pt
+
+# tracking
+trackio/
+*.db
+wandb/
+
+# os / editor
+.DS_Store
+.idea/
+.vscode/

@@ -1,0 +1,64 @@
+[project]
+name = "rlvr-crosslingual-safety"
+version = "0.1.0"
+description = "Does LoRA-GRPO on Spanish math change English harmful compliance in Qwen2.5-7B-Instruct?"
+readme = "README.md"
+requires-python = "==3.12.*"
+license = { text = "MIT" }
+dependencies = [
+  # data
+  "datasets>=3.0",
+  "bsdiff4>=1.2",
+  "huggingface_hub>=0.30",
+  # modeling (CPU on macOS; CUDA wheels selected automatically on Linux)
+  "torch>=2.5",
+  "transformers>=4.50",
+  "peft>=0.14",
+  "accelerate>=1.0",
+  "sentencepiece",
+  # scoring
+  "math-verify>=0.7",
+  "langdetect>=1.0.9",
+  # StrongREJECT official package (not on PyPI); pinned to a commit
+  "strong_reject @ git+https://github.com/dsbowen/strong_reject.git@7a551d5b440ec7b75d4f6f5bb7c1719965b76b47",
+  # analysis
+  "numpy>=1.26",
+  "pandas>=2.2",
+  "scipy>=1.13",
+  "matplotlib>=3.9",
+  # tracking / misc
+  "trackio>=0.1",
+  "pyyaml>=6.0",
+  "tqdm>=4.66",
+  "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+# Installed only on the Linux GPU box (Stage 1+).
+gpu = [
+  "vllm>=0.8; sys_platform == 'linux'",
+  "trl>=0.19; sys_platform == 'linux'",
+]
+
+[dependency-groups]
+dev = [
+  "pytest>=8.0",
+  "ruff>=0.6",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/rlvr_crosslingual_safety"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
