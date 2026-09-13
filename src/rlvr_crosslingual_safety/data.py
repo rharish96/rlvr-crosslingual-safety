@@ -10,8 +10,8 @@ import base64
 import json
 import re
 import urllib.request
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable
 
 import bsdiff4
 from datasets import Dataset, load_dataset

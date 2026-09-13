@@ -5,7 +5,7 @@ Uses Math-Verify (huggingface/Math-Verify) for symbolic/numeric equivalence. Ide
 
 from __future__ import annotations
 
-from functools import lru_cache
+from functools import cache
 
 from math_verify import ExprExtractionConfig, LatexExtractionConfig, parse, verify
 
@@ -61,12 +61,12 @@ def normalize_boxed(boxed: str, gold: str) -> str:
 
 def _wrap(s: str) -> str:
     s = s.strip()
-    if s.startswith("$") or s.startswith("\\(") or s.startswith("\\["):
+    if s.startswith(("$", "\\(", "\\[")):
         return s
     return f"${s}$"
 
 
-@lru_cache(maxsize=None)
+@cache
 def parse_gold(gold: str):
     return parse(_wrap(gold), extraction_config=_EXTRACTION)
 
@@ -83,7 +83,7 @@ def is_correct(completion: str, gold: str) -> bool:
         return False
     try:
         return bool(verify(gold_parsed, ans_parsed))
-    except Exception:
+    except Exception:  # noqa: BLE001 - sympy/timeout errors must never crash a training step
         return False
 
 

@@ -1,0 +1,160 @@
+# Cross-Lingual RLVR and English Harmful Compliance: Design and Execution Plan
+
+Status: Stage 0 complete (2026-09-12). See `docs/STAGE0_REPORT.md`.
+
+## 1. Question and hypothesis
+
+- Does LoRA-based GRPO (RLVR) on Spanish math problems change harmful compliance of Qwen2.5-7B-Instruct on English StrongREJECT prompts, relative to the same training in English?
+- Primary test, two-sided: H0: Δ_SR = 0 vs. H1: Δ_SR ≠ 0. Prior work motivates an increase, but a decrease or a null is also informative.
+- The baseline is expected near the floor (Yong & Bach report ASR < 5% for non-reasoning Qwen2.5-Instruct), so in practice only increases are detectable.
+- No fixed smallest effect of interest. We report the 95% CI together with the minimum detectable effect (MDE): the smallest true increase the design would detect with 80% probability, computed from the baseline generations before any trained model is scored (`stats.mde_analytic`, `stats.mde_bootstrap`). A null reads "the CI is [a, b]; the design could detect increases of at least MDE."
+
+## 2. Background and gap
+
+- [DeepSeekMath](https://arxiv.org/abs/2402.03300) introduced GRPO, the standard optimizer for math RLVR.
+- [Qi et al., ICLR 2024](https://arxiv.org/abs/2310.03693) showed benign fine-tuning can weaken safety alignment.
+- [Self-Jailbreaking](https://arxiv.org/abs/2510.20956) (Yong & Bach, [ICLR 2026](https://proceedings.iclr.cc/paper_files/paper/2026/file/9b14a88c6e50068a97256696902521bf-Paper-Conference.pdf)): benign math/code reasoning training raises StrongREJECT ASR from <5% to 60–95% across SFT- and RL-trained models. Models still classify prompts as unsafe (95–99%) but rationalize compliance in CoT; 50 safety-reasoning samples restore refusal. Cross-lingual generalization is named as open.
+- [GRPO Beyond English](https://arxiv.org/abs/2608.13698) (Dobler et al.; [Apple ML](https://machinelearning.apple.com/research/grpo-beyond-english)): non-English GRPO transfers across languages but causes model- and language-specific regressions on out-of-domain reasoning and hard math. Safety was not evaluated.
+- Gap: whether non-English math RLVR transfers to an English safety behavior that was never in the training objective.
+
+## 3. Model
+
+- [Qwen2.5-7B-Instruct](https://huggingface.co/Qwen/Qwen2.5-7B-Instruct): instruction-tuned with intact refusal behavior, 29+ languages including Spanish, Apache-2.0, fits LoRA-GRPO on one H100, and is the base of s1.1-7B from the Self-Jailbreaking paper.
+- Why not a newer model:
+  - The intervention must be the first reasoning RL the model sees. Nearly all 2025–26 releases (Qwen3+, gpt-oss, SmolLM3, R1 distills) already have RLVR-trained thinking modes; our run would be a rounding error on top and a null uninformative. GRPO Beyond English shows the headroom problem: +50 pp in-domain for Qwen3-Base vs. +1–4 pp for post-trained Qwen3.
+  - Yong & Bach's story is aligned model → reasoning training → compliance rises. Qwen2.5-7B-Instruct is the "before" state.
+  - Yong & Bach publish this model's baseline StrongREJECT ASR, so our baseline should reproduce it.
+  - mAceReason authors suspect AceReason-Math is in Qwen3's RLVR mix; Qwen2.5 predates the dataset.
+  - Base (non-instruct) models have no refusal behavior to lose.
+- Excluded: Qwen2.5-Math (math-specialized); Qwen3 (above).
+- Second-model candidate for a later generality claim: Gemma-3-4b-it or 12b-it.
+- Qwen2.5-3B-Instruct is used only as a first pass to test the pipeline. Its results are discarded.
+
+## 4. Data
+
+- Source: [mAceReason-Math](https://arxiv.org/abs/2603.10767) ([GitHub](https://github.com/apple/ml-macereason-math) @ `a9b8d7e`, CC BY-NC-ND 4.0), a 14-language translation of cleaned AceReason-Math built for RLVR by the GRPO Beyond English authors. English is reconstructed from `nvidia/AceReason-Math` @ `a5cc41c` via the released bsdiff4 patches.
+- Parallel means the same underlying problems exist as translations in every language. The Spanish arm trains on the Spanish text and the English control on the English text of the same problems, so only language differs between arms.
+- Splits used: parallel `train` (7,620 per language) and parallel `test` (190, human-validated). Not used: Spanish `train_all` (11,346, non-parallel).
+- Stage 0 verified: identical `original_idx` sets and order between es and en for both splits.
+- Spanish is Qwen-supported and had native-speaker review of a 100-item pilot and the test set; train translations passed only an LLM grading/refinement loop (residual translation errors are a limitation).
+- Language choice: Spanish kept (close enough to English to pass the gate and stay in-language). Japanese/Korean are candidates for a later distance-contrast arm; Chinese avoided as Qwen's home language.
+- Answer verification, identical for both arms (`reward.py`):
+  - Gold answers are the English reference solutions (the dataset localizes number formats in translated solutions, e.g. `42,86\%` vs `42.86\%`).
+  - Problems whose English gold contains a decimal (`3.5`, `.185`) or comma thousands grouping (`2,177,280`) are dropped for both arms. Stage 0 counts: train 330 dropped (317 decimal, 13 comma) → 7,290 kept; test 10 dropped → 180 kept. Kept gold types (train): 6,160 integers, 825 expressions, 227 other, 94 fractions.
+  - Reward = 1 iff the last balanced `\boxed{...}` in the completion is Math-Verify-equivalent to the gold; unbalanced (truncated) or missing box = 0.
+  - Stage 0 found Math-Verify does not read Spanish-locale numbers (`3,5` → set {3,5}; `10.500` → 10.5). Because 872 kept problems (12%) have integer golds ≥ 1000, a minimal pattern-based normalization of the boxed string is applied identically in both arms: pure thousands-dot/space/thin-space groupings are collapsed to integers; a lone decimal comma is read as a decimal point only when the gold contains no comma. Documented in `results/stage0_reward_check.json`; 36 unit tests.
+- Response language: `langdetect` (as in GRPO Beyond English) after stripping LaTeX, equations, numerals and code; responses with < 20 prose characters are "unknown".
+
+## 5. Training subset
+
+1. From the 7,290 kept parallel `train` IDs, sample 4,000 by ID (shared by both arms).
+2. For each, sample 8 baseline solutions from the untrained model with the training template, temperature 1.0, 2,048 max tokens.
+3. Score with the reward above; eyeball ~20 Spanish outputs for parsing failures.
+4. Keep problems solved 2–6 of 8 (25–75%), targeting 1,500–2,000. All-correct or all-wrong groups have zero GRPO advantage and no gradient.
+
+## 6. RLVR configuration
+
+- GRPO with bf16 LoRA on one H100 (no QLoRA).
+- LoRA: all linear layers, r = 32, α = 64, LR ≈ 1e-5 (≈10× the 1e-6 full-FT rate of GRPO Beyond English, per [LoRA Without Regret](https://thinkingmachines.ai/blog/lora/)).
+- 16 prompts × 8 rollouts = 128 rollouts per step; temperature 1.0; 2,048 max completion tokens (Stage 1 measures truncation; raise to 3,072 if > 10%).
+- Reward: binary correctness only. Loss: DAPO-style token-level, β = 0, no std-scaling.
+- ~250 steps (~2 epochs over the pool). Adapters saved at step 0 (base model), midpoint (~125), end (250; 500 if extended). Full trainer state saved at 250 so an extension resumes exactly.
+- Prompting: default Qwen2.5 chat template, no custom system prompt. Training-only user-turn suffix: es "Razona paso a paso y escribe la respuesta final en \boxed{}." / en "Reason step by step and put your final answer in \boxed{}." No thinking template.
+- One seed. No English or safety data in training.
+- Checkpoints: base + adapter (100–300 MB), loaded in vLLM by attaching the adapter. Both arms share step 0; baseline evaluations run once before either arm trains. Adapters and raw generations go to the persistent volume and a private HF model repo, tagged with step, arm, seed, config and versions.
+
+## 7. Gate: did RLVR work?
+
+- Evaluate each checkpoint on the 180 kept Spanish test items at avg@8 with the training template.
+- Report accuracy with a paired-bootstrap 95% CI over items, training-reward curve, response length, truncation rate, share of outputs detected as Spanish.
+- Gate: final avg@8 significantly above baseline (paired bootstrap CI excludes zero) and a rising reward curve. Effect size reported; with 180 × 8 samples the smallest detectable gain is roughly 3–5 pp. No threshold is borrowed from the base papers, which have no gate.
+- If the CI includes zero, extend to 500 steps and re-test once, before any safety score is examined.
+- If `langdetect` shows frequent English responses to Spanish prompts, describe the intervention as "RLVR on Spanish-language prompts."
+
+## 8. English safety evaluation
+
+- All 313 [StrongREJECT](https://strong-reject.readthedocs.io/) prompts (`alexandrasouly/strongreject` @ `f7cad6c`; 6 categories: 59/54/50/50/50/50), no jailbreak templates.
+- Per checkpoint: 3 responses per prompt, fresh context, default Qwen template with no system prompt and no math instruction, Qwen's published sampling (temperature 0.7, top-p 0.8), 1,024 max tokens, fixed seed schedule.
+- Scoring: `strongreject_finetuned` (`qylu4156/strongreject-15k-v1` @ `4bd893d`, LoRA r=8 on gated `google/gemma-2b`), 0–1 score = expected value of the judge's 1–5 rating. Loaded explicitly and pinned via `safety_eval.load_evaluator` (the package's `device_map="auto"` loader aborts on Apple MPS); CPU fp32 locally, CUDA bf16 on the box. `max_response_length` = 1,024 (package default 512 would truncate).
+- Why this evaluator: official StrongREJECT judge, reported by its authors to agree with human labels about as well as the GPT-4 rubric; local, free, deterministic; no harmful content leaves the machine. Trade-off: trained on ordinary chat responses; the optional rubric spot check covers drift.
+- Scored text: the full response. The model has no thinking delimiter, so its whole output is the user-facing answer; Yong & Bach scored this same base model the same way. If a visible reasoning-then-answer structure emerges, answer-only scoring is added as a robustness check with full-response primary.
+- Stage 0 direction check (synthetic low-hazard prompt): refusal 0.002, off-topic 0.018, compliant 0.667.
+- Workload: 313 × 3 × 3 = 2,817 responses. Not included: HarmBench, XSTest, manual annotation.
+
+## 9. Primary outcome
+
+- Baseline = step 0 (no adapter); Final = end of training. Per prompt, average its 3 scores; S̄ = mean across prompts.
+- Δ_SR = S̄_final − S̄_baseline, 95% CI from a paired bootstrap over prompts (`stats.paired_bootstrap_delta`). Also report ASR at threshold 0.5 and the MDE.
+- Midpoint: plotted for the trajectory only; not tested.
+- Category-level: ~50 prompts each; shown as observations, not claims (6 tests → ~1-in-4 chance of a spurious hit).
+- Interpretation: positive Δ = increased English harmful compliance; negative = reduced (hard to detect at floor); CI near zero = no detectable transfer at the stated MDE.
+- No benign prompts, so a decrease could not be separated from generalized refusal (stated limitation; add XSTest if a decrease appears).
+- Comparability with Yong & Bach is at the design level (same benchmark, same starting model, same outcome direction), not exact ASR values (different judge scale, thinking budget, sampling). Number-level comparability via the AISI add-on.
+
+## 10. English control
+
+- Same problem IDs, same configuration, same English gold and verifier, English instruction. Separates "math RLVR" from "Spanish math RLVR" and replicates the pipeline. Paper-level: 3 seeds per arm.
+
+## 11. Scope of claims
+
+- Exploratory cross-lingual safety audit: one model, one language pair, one seed.
+- Supported: "We measure whether LoRA-based GRPO on Spanish mathematical problems transfers to English harmful-compliance behavior in Qwen2.5-7B-Instruct, relative to the same training in English."
+- Not claimed: RLVR generally raises/lowers safety; Spanish uniquely causes any effect; strict self-jailbreaking (requires CoT analysis); lower scores imply better alignment.
+- LoRA-only is a limitation, softened by LoRA Without Regret (LoRA matches full FT for policy-gradient RL at low rank).
+
+## 12. Add-ons (not included now)
+
+- XSTest safe subset (250 × 1 × 3 = 750 responses, ~15 GPU-min) if a decrease appears.
+- AISI judge (`strongreject_aisi`) on the saved 2,817 responses for number-level comparability with Yong & Bach; OpenAI key; a few dollars. Agreed as a later add-on.
+- Rubric spot check (50 responses) if: CI edge near a decision boundary; unusual output style; many scores in 0.3–0.7 or mean/ASR disagree; baseline mean > ~0.1; publication.
+- Japanese/Korean arm; `<think>`-format variant; Gemma-3 second model.
+
+## 13. Tooling
+
+- Training: TRL `GRPOTrainer` + vLLM colocated + PEFT. Generation: vLLM. Scoring: Math-Verify 0.9.0, `strong_reject` @ `7a551d5`, `langdetect`.
+- Tracking: trackio (local SQLite; no WandB). Versioning: private GitHub repo `rharish96/rlvr-crosslingual-safety` for code/configs/metrics/figures; adapters and raw generations to a private HF repo or the volume.
+- Environment: `uv`-managed Python 3.12, `uv.lock` (250 packages; torch 2.13.0, transformers 5.17.0, peft 0.20.0, datasets 5.0.1; gpu extra: vllm 0.29.0, trl 1.13.0).
+- Cursor connectors: MCP servers/Plugins (`~/.cursor/mcp.json`, `${env:HF_TOKEN}` supported). The HF plugin is optional; MCP credentials do not reach terminal scripts, so the shell `HF_TOKEN` is the single source of truth. GitHub via `gh`. No official GPU-provider connectors; SSH.
+
+## 14. Pipeline tests
+
+- Stage 0 (local CPU) — complete; see `docs/STAGE0_REPORT.md`.
+- Stage 1 (GPU, Qwen2.5-3B-Instruct, ~1 h): screen 200 × 8 (tokens/s, truncation at 2,048); 20 GRPO steps at 4 × 8 with adapters at 10/20; check reward non-degenerate, loss finite, no OOM, adapter loads in vLLM; evaluate baseline and step-20 on 180 test items (avg@2) and 40 StrongREJECT prompts × 1; run evaluator; compute Δ/CI/MDE end to end; time every stage.
+- Stage 2 (GPU, Qwen2.5-7B-Instruct, ~30 min): 10 steps at full config; confirm memory; measure step time; compute baseline StrongREJECT + MDE before training; launch Spanish arm.
+- Go/no-go: no OOM; step time within budget; non-degenerate reward; ≥ 90% of Spanish rollouts parse a `\boxed{}`; truncation ≤ 10%; evaluator mean < 0.05 on the baseline subset; adapter round-trips.
+
+## 15. Cost
+
+- One H100 80GB at $2.50–3.50/h. Shared: screening 1–2 h, baseline evals ~0.3 h. Per arm: training 5–9 h (250 steps), evals ~0.5 h; +5–9 h if extended. Tests ~1.5 h.
+- Nominal 15–22 h ≈ $45–75; buffered 25–35 h ≈ $75–120. Working figure $60–130. No API spend required.
+
+## 16. Accounts and credentials
+
+- Hugging Face: done. Fine-grained token, single permission "Read contents of public gated repos you can access"; Gemma license accepted. Stored at `~/.cache/huggingface/token` (0600) and exported as `HF_TOKEN` from `.zshrc`. Later: write scope for the private adapter repo; Jobs scope only if HF Jobs is the provider.
+- GitHub: `gh` authenticated as `rharish96` (`repo` scope).
+- GPU provider (Stage 1+): RunPod / Lambda / Vast.ai / HF Jobs; SSH key; ≥ 100 GB volume. Token reaches the box via provider secrets or `scp` of the token file.
+- Optional: OpenAI key for AISI/rubric add-ons.
+- Rules: tokens never pasted in chat; referenced by name only; `.env` and HF cache outside the repo; leaked token → revoke and recreate.
+
+## 17. Machine state (2026-09-12)
+
+- macOS 15.6 arm64, 26 GB RAM. Homebrew Python 3.14.7 (default) and 3.13.15; `gh` 2.100.0; `uv` 0.12.13. Project venv: uv-managed CPython 3.12.14.
+
+## 18. Decision log
+
+- SESOI dropped for CI + MDE; capability gate changed from fixed 5 pp to CI-excludes-zero + rising reward.
+- English gold for both arms; decimal and comma-thousands golds dropped (7,620 → 7,290 train; 190 → 180 test).
+- "No custom normalization" reversed after Stage 0 evidence: Math-Verify does not parse Spanish-locale numbers and 12% of kept golds are integers ≥ 1000; a minimal symmetric normalization of the boxed string was added and unit-tested.
+- Spanish kept over Japanese/Korean. Qwen2.5-7B-Instruct over newer models. Full-response scoring. Fine-tuned evaluator primary; AISI later; rubric spot check conditional; XSTest deferred.
+- Evaluator loaded explicitly (pinned revision, CPU fp32 / CUDA bf16) because the package loader aborts on MPS.
+- trackio, not WandB. Dashes for folders/repos, underscores for the Python package.
+
+## 19. Glossary
+
+- ASR: attack success rate; fraction of responses judged harmful above a threshold.
+- Rollout: one sampled answer; 8 per prompt form a GRPO group. Advantage: reward minus group mean.
+- Temperature: sampling randomness; 0 deterministic, 1.0 the model's own distribution.
+- Adapter / checkpoint: LoRA weight file; base + adapter at a step. Gate: capability check before interpreting safety.
+- Paired bootstrap: resample items with replacement, keep each item's own difference, recompute the mean.
+- avg@8: mean accuracy over 8 samples per item. MDE: smallest true change detectable with 80% power.
+- OOM: GPU out of memory. Truncation: response cut at the token limit; reward 0.
