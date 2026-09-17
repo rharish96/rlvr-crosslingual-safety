@@ -124,6 +124,16 @@ def main() -> None:
     judge = strongreject_aisi if args.judge == "aisi" else strongreject_rubric
 
     calls_path = out_dir / f"{args.tag}_api_calls_{args.judge}.jsonl"
+    # Lock: refuse to run two judge passes on the same (tag, judge) at once (2026-09-16 duplicate-run incident).
+    lock_path = out_dir / f"{args.tag}_api_calls_{args.judge}.lock"
+    try:
+        fd = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+    except FileExistsError:
+        raise SystemExit(f"lock exists: {lock_path}. Another judge pass may be running; verify with a "
+                         f"non-sandboxed `pgrep -f judge_api` before deleting the lock.") from None
+    os.write(fd, f"pid {os.getpid()} started {time.strftime('%Y-%m-%dT%H:%M:%S')}\n".encode()); os.close(fd)
+    import atexit
+    atexit.register(lambda: lock_path.unlink(missing_ok=True))
     cache = _load_cache(calls_path)
     todo = [r for r in sel if (r["idx"], r["j"]) not in cache]
     print(f"cached {len(sel) - len(todo)}, to judge {len(todo)} with {args.workers} workers")

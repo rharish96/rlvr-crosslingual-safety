@@ -60,13 +60,13 @@ The 30 are the first 10 prompts × 3 samples, all in the "Disinformation and dec
 - **Pattern B (3 cases): local < 0.5, GPT-5 = 2–3/5.** Informational partial-compliance answers (one prompt) that GPT-5 rates mildly harmful and the local judge rates 0.20–0.46.
 - GPT-5 cost ≈ $0.30 for 30 calls; 5 s/call.
 
-## 6. Decision needed before launch: which judge is primary?
+## 6. Decision needed before launch: which judge is primary? — RESOLVED 2026-09-16: Option B (see addendum at the end)
 
 The local judge is noisy in exactly the 0.4–0.7 band that Qwen2.5's soft refusals land in. Because Δ is paired, a constant bias cancels, but a training-induced change in refusal *phrasing* could move the local score without any change in compliance, which is the confound the plan warned about.
 
 - **Option A (plan as written):** local judge primary; stratified 50-response GPT-5 check at the final checkpoint; report both. Cheapest; interpretation depends on that check.
 - **Option B (recommended):** GPT-5 AISI judge as the primary safety metric on baseline and final for each arm (939 × 2 per arm; ≈ $10–20 per arm at current per-call cost; ≈ 1.3 h per arm sequential, or ~10 min with 8-way concurrency added to `judge_api.py`); local judge for the midpoint trajectory and as the secondary metric. Gives Yong & Bach's exact metric and threshold (raw > 1), so our baseline ASR becomes directly comparable to their < 5%.
-- Either way, run the **stratified 50 on the baseline now** (< $1) to confirm the pattern across categories, since the 30 were all one category.
+- ~~Either way, run the stratified 50 on the baseline now~~ Superseded 2026-09-16: Option B judged all 939 baseline responses instead (addendum below).
 
 ## 7. Cost projections from measured numbers (H100 SXM secure, $3.49/h)
 
@@ -88,29 +88,53 @@ The local judge is noisy in exactly the 0.4–0.7 band that Qwen2.5's soft refus
 | Baseline evaluator mean < 0.05 | **Fail**: 0.090 (judge calibration + real partial compliance; see §5–6) |
 | Adapter round-trips through vLLM | **Pass** |
 
-## 9. Exact launch commands for the Spanish arm (on the pod, after `bootstrap.sh`)
+## 9. Exact launch procedure for the Spanish arm (updated 2026-09-16)
+
+Decisions folded in: Option B (GPT-5 AISI primary judge), checkpoints every 25 steps, `--report-to none`, one `&&` chain under tmux so evaluations follow training without an agent, sparse filtered polling, and a deliberate **pause point** after the first health poll (stop the pod; relaunch from scratch later; no checkpoint-resume for deliberate pauses).
 
 ```bash
-source /workspace/rlvr-crosslingual-safety/scripts/remote/env.sh && cd $PROJECT
-# 1. screening (shared pool; ~20 min)
-uv run python scripts/screen.py --lang es --model 7b --backend vllm --n-ids 4000 --k 8 --max-tokens 2048 --tag es_7b
-# 2. training (~4.6 h); saves adapters at steps 125 and 250 with trainer state
-uv run python scripts/train_grpo.py --lang es --pool data/processed/pool_es_7b.json --model 7b \
-  --steps 250 --save-steps 125 --prompts-per-step 16 --num-generations 8 --micro-batch 4 \
-  --max-completion 2048 --vllm-gpu-mem 0.30 --report-to none --out /workspace/adapters/es_seed0
-# 3. evaluations (midpoint = checkpoint-125, final = final/)
-uv run python scripts/eval_math.py   --lang es --model 7b --k 8 --adapter /workspace/adapters/es_seed0/checkpoint-125 --tag es_mid
-uv run python scripts/eval_math.py   --lang es --model 7b --k 8 --adapter /workspace/adapters/es_seed0/final --tag es_final
-uv run python scripts/eval_safety.py --model 7b --n 3 --adapter /workspace/adapters/es_seed0/checkpoint-125 --tag es_mid
-uv run python scripts/eval_safety.py --model 7b --n 3 --adapter /workspace/adapters/es_seed0/final --tag es_final
-# 4. report (baseline files from Stage 1)
-uv run python scripts/report.py --arm es --math-base outputs/eval_math/base_es.json --math-mid outputs/eval_math/es_mid.json \
-  --math-final outputs/eval_math/es_final.json --safety-base outputs/safety/base_scores.json \
-  --safety-mid outputs/safety/es_mid_scores.json --safety-final outputs/safety/es_final_scores.json \
-  --log-history /workspace/adapters/es_seed0/log_history.json
+# --- Mac: start pod (MCP pod-action start), refresh Host runpod in ~/.ssh/config from get-pod ssh.direct, then:
+scripts/remote/sync.sh runpod
+ssh runpod 'bash /workspace/rlvr-crosslingual-safety/scripts/remote/bootstrap.sh'
+
+# --- pod: screening (shared pool for both arms; ~20 min incl. vLLM start). Outputs on the volume.
+ssh runpod 'source /workspace/rlvr-crosslingual-safety/scripts/remote/env.sh && cd $PROJECT && \
+  RLVR_OUTPUTS=/workspace/outputs uv run python scripts/screen.py --lang es --model 7b --backend vllm \
+  --n-ids 4000 --k 8 --max-tokens 2048 --out-dir /workspace/outputs --tag es_7b'
+# check: n_kept 1,500-2,000; boxed_parse_rate >= 0.90; truncation_rate <= 0.10; language shares. Sync pool_es_7b.json back.
+
+# --- pod: training + chained evaluations in one tmux session (~4.6 h train + ~35 min evals)
+ssh runpod 'source /workspace/rlvr-crosslingual-safety/scripts/remote/env.sh && cd $PROJECT && mkdir -p /workspace/logs && \
+  tmux new -d -s es "bash -lc \"source scripts/remote/env.sh && cd \$PROJECT && \
+  uv run python scripts/train_grpo.py --lang es --pool data/processed/pool_es_7b.json --model 7b \
+    --steps 250 --save-steps 25 --prompts-per-step 16 --num-generations 8 --micro-batch 4 \
+    --max-completion 2048 --vllm-gpu-mem 0.30 --report-to none --seed 0 --out /workspace/adapters/es_seed0 \
+  && uv run python scripts/eval_math.py   --lang es --model 7b --k 8 --adapter /workspace/adapters/es_seed0/checkpoint-125 --tag es_mid   --out-dir /workspace/outputs \
+  && uv run python scripts/eval_math.py   --lang es --model 7b --k 8 --adapter /workspace/adapters/es_seed0/final          --tag es_final --out-dir /workspace/outputs \
+  && uv run python scripts/eval_safety.py --model 7b --n 3 --adapter /workspace/adapters/es_seed0/checkpoint-125 --tag es_mid   --out-dir /workspace/outputs \
+  && uv run python scripts/eval_safety.py --model 7b --n 3 --adapter /workspace/adapters/es_seed0/final          --tag es_final --out-dir /workspace/outputs \
+  && echo ARM_DONE > /workspace/logs/es_seed0.DONE\" 2>&1 | tee /workspace/logs/es_seed0.log"'
+
+# --- first health poll (~15 min after launch; filtered one-liner, then every 30-45 min if not pausing)
+ssh runpod 'python3 -c "import json,glob; h=[r for r in json.load(open(sorted(glob.glob(\"/workspace/adapters/es_seed0/checkpoint-*/trainer_state.json\"))[-1]))[\"log_history\"] if \"reward\" in r]; r=h[-1]; print(r[\"step\"], round(r[\"reward\"],3), round(r.get(\"frac_reward_zero_std\",-1),3), round(r.get(\"completions/clipped_ratio\",-1),3), round(r.get(\"step_time\",-1),1))" 2>/dev/null || tail -c 600 /workspace/logs/es_seed0.log; nvidia-smi --query-gpu=memory.used --format=csv,noheader'
+# healthy: step advancing, reward ~0.3-0.7, frac_reward_zero_std < 0.3, clipped_ratio < 0.1, ~60-75 s/step, memory < 80 GB, no NaN.
+
+# --- PAUSE POINT (this launch only): tmux kill-session -t es on the pod, then MCP pod-action stop. Screening pool survives on the volume.
+#     Relaunch later = the tmux command above again, from step 0 (same seed). Do NOT --resume for a deliberate pause.
+
+# --- after ARM_DONE: Mac side
+scripts/remote/pull.sh runpod                      # rsync /workspace/outputs -> outputs/ (see INFRA)
+export OPENAI_API_KEY="$(cat ~/.config/openai/key)"
+uv run python scripts/judge_api.py --tag es_final --select all --workers 8      # ~$6.7, ~20 min
+uv run python scripts/report.py --arm es --safety-judge api \
+  --math-base outputs/eval_math/base_es.json --math-mid outputs/eval_math/es_mid.json --math-final outputs/eval_math/es_final.json \
+  --safety-base outputs/safety/base_api_scores.json --safety-final outputs/safety/es_final_api_scores.json \
+  --safety-mid outputs/safety/es_mid_scores.json --safety-mid-judge local \
+  --log-history /workspace/adapters/es_seed0/log_history.json   # (pull it with the outputs)
+# then MCP pod-action stop
 ```
 
-Gate rule unchanged: if the final avg@8 CI does not exclude zero, resume from `checkpoint-250` to 500 steps (`--resume`) before any safety score is read.
+Gate rule unchanged: if the final avg@8 CI does not exclude zero, resume from `checkpoint-250` to 500 steps (`--resume /workspace/adapters/es_seed0/checkpoint-250 --steps 500`) before any safety score is read; record the resume in the report. The English arm is the same procedure with `--lang en`, the same `pool_es_7b.json` IDs (parallel problems), `--out /workspace/adapters/en_seed0`, and no screening.
 
 ## 10. Artifacts
 

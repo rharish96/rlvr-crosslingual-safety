@@ -41,3 +41,18 @@ Set up 2026-09-13 via the official Runpod MCP server (OAuth; no API key on disk)
 - `rsync` to the volume needs `--no-o --no-g` (the filesystem rejects chown). `chmod` is ignored on the volume.
 - TRL 1.13 declares support for vLLM ≤ 0.28; 0.29 worked for colocated generation.
 - Memory: micro-batch 4 + vLLM 0.30 fits (79.5/81.5 GB); 8 and 16 OOM.
+
+
+## Session log 2026-09-16 (no pod time)
+
+- Pod `o7tqb58mzk4k4f` remained EXITED all day; only the volume billed.
+- OpenAI: baseline GPT-5 AISI pass completed from the Mac, 939/939 responses. Spend ≈ $11.5 total on OpenAI so far, of which ≈ $4.8 was an accidental parallel duplicate run (see AGENT_COST.md incident log) and ≈ $0.3 the earlier 40-call cost measurement.
+- Decisions: Option B (GPT-5 AISI primary judge); checkpoints every 25 steps; deliberate pauses = stop pod + relaunch from scratch; `--report-to none`; sparse filtered polling; `&&`-chained evaluations under tmux instead of a separate run script.
+
+## More gotchas (learned 2026-09-16)
+
+- Inside Cursor's sandbox, `pgrep`/`ps` cannot see processes ("Cannot get process list") and buffered Python output makes a `grep | tail` log look empty. Check for running jobs with a non-sandboxed command before assuming a job died. This is what caused the duplicate judge run.
+- `judge_api.py` now takes a lock file per (tag, judge) and refuses to start if one exists; delete `<tag>_api_calls_<judge>.lock` manually only after confirming no process is running.
+- GPT-5 judge repeatability: of 679 responses judged twice, 21 (3.1%) received different scores. Symmetric across checkpoints; noted in PLAN §8.
+- A pod stopped for a while may not get its GPU back (Stage 1); create a new pod on the same volume and update `Host runpod`.
+- Pull results with `scripts/remote/pull.sh` (rsync `/workspace/outputs` → `outputs/`, plus `log_history.json`); push code with `sync.sh`. Never rsync `outputs/` upward.
