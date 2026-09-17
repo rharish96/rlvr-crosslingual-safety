@@ -92,6 +92,8 @@ The local judge is noisy in exactly the 0.4–0.7 band that Qwen2.5's soft refus
 
 Decisions folded in: Option B (GPT-5 AISI primary judge), checkpoints every 25 steps, `--report-to none`, one `&&` chain under tmux so evaluations follow training without an agent, sparse filtered polling, and a deliberate **pause point** after the first health poll (stop the pod; relaunch from scratch later; no checkpoint-resume for deliberate pauses).
 
+Executed to the pause point on 2026-09-16 (new pod `q0rkwvh27l8o1f`; screening kept 1,643; 11 healthy steps, then killed; $2.56). The tmux chain below is now the file `scripts/remote/launch_arm.sh es|en`; the relaunch procedure and health poll are in `docs/HANDOFF.md` §3.
+
 ```bash
 # --- Mac: start pod (MCP pod-action start), refresh Host runpod in ~/.ssh/config from get-pod ssh.direct, then:
 scripts/remote/sync.sh runpod
