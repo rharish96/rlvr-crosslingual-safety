@@ -26,6 +26,27 @@ Whether any of this bills on-demand depends on the remaining "Included" allowanc
 
 Incident log: on 2026-09-16 the baseline GPT-5 judge pass was accidentally started twice in parallel (a sandbox quirk hid the first process). 679 duplicate calls ≈ $4.8 wasted on the OpenAI side; results unaffected (cache keyed per response). Guard added: the run command now aborts if a judge process is already running.
 
+### 0b. Update from `usage-events-2026-09-17-2.csv` (77 events through 2026-09-16 22:35 local)
+
+Two events excluded as a mis-sent prompt (2026-09-16 20:41:44, a 5-token aborted Fable call, and 20:41:50, the Grok answer to it; $1.57 together). All 75 kept events are `Included` or `Free`; $0 billed on-demand.
+
+| Segment | Events | Cache write | Uncached in | Cache read | Output | Notional |
+|---|---|---|---|---|---|---|
+| Whole project to date | 75 | 19.45M | 0.57M | 106.0M | 459k | **$296** |
+| through 09-13 (Section 0) | 58 | 14.37M | 0 | 83.75M | 370k | $219 |
+| 09-16 evening Q&A + doc updates, Fable at 530–590k context | 11 | 5.08M | 0 | 19.05M | 63k | **$71** (≈ $7.2/turn, of which ≈ $7.1 is the context re-write) |
+| 09-16 launch to first poll, Grok 4.6 Fast at 100–330k context | 6 | 0 | 0.57M | 3.20M | 26k | **$5.8** (the 45-tool-call launch turn: $3.6) |
+
+- The launch stretch (pod replacement, sync, bootstrap, 4,000×8 screening, training to step 11, pause, cost summary, two follow-ups) cost $5.8 notional. The same tokens at Fable rates would be $7.8: Grok's cheaper uncached input ($4/M vs $12.5/M write) outweighs Fable's cheaper cache reads ($0.25/M vs $1/M) for this read-heavy pattern.
+- The larger saving came from context size, not model: Cursor compacted the chat to ~100k tokens during this stretch, so a cold turn now re-writes ~100k ($0.40 on Grok, ~$1.3 on Fable) instead of ~570k ($7.1 on Fable).
+- Grok rates used: $4/M input, $1/M cache read, $12/M output (Section 6). Fable as in Section 0.
+
+Revised projection for the remainder, at the now-measured ~100–150k context: each arm on Grok ≈ $8–20 (launch $3.6, 8 polls at $0.4–0.8 each, pull/judge/report 3 turns, debugging contingency); 500-step extensions +$3–6 per arm; final synthesis and write-up on Fable, 15–25 mostly cold turns at $1–2 → $15–50. **Remaining $35–100 notional; project total $330–400 notional**, $0 billed so far.
+
+Runpod actuals from the billing API (2026-09-10 → 09-17): GPU $10.65, storage $1.09, pod disk $0.02, **total $11.76**; the launch pod `q0rkwvh27l8o1f` posted $2.56 for its 43.8 minutes. OpenAI to date ≈ $11.5 (INFRA.md).
+
+Full-experiment cash prediction (Runpod + OpenAI, excluding Cursor): remaining GPU = two arms at 4.4–5.2 h each (55 s/step measured, 66 s worst case, plus ~35 min evals and startup) $31–36, both extended to 500 steps +$26–32, storage $7–14 for 1–2 months, one crash/pod-replacement contingency $3–7 → **$41–58 without extensions, $67–90 with**. Remaining OpenAI: two finals $13.4, optional API-judged midpoints +$13.4, extension finals +$13.4 → $13–40. **Total cash ≈ $78 (spent $23 + $55) to $154; central case ≈ $100 without extensions, ≈ $130 with.**
+
 ---
 
 
