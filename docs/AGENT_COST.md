@@ -1,6 +1,35 @@
 # Agent (Cursor) token usage and cost
 
-Scope: tokens consumed by the coding agent itself (coordinator chat + subagents), not GPU training tokens. Analysis date 2026-09-13, after Stage 1.
+## 0. Actuals from the Cursor usage export (2026-09-17) — supersedes the estimates below
+
+Source: `usage-events-2026-09-17.csv` (58 events, 2026-09-10 21:05 → 2026-09-13 15:09 local, all model `claude-fable-5-1-thinking-xhigh`, all `Kind = Included`, i.e. covered by the plan allowance; $0 billed on-demand). Events are per agent run/user message, not per tool call.
+
+| | Cache write | Uncached input | Cache read | Output | Total | Notional at list rates* |
+|---|---|---|---|---|---|---|
+| Whole conversation (3 days) | 14.37M | 638 | 83.75M | 370k | 98.5M | **$219** (write $180, read $21, output $19) |
+| Sun 09-13 (Stage 1 + multitask workers + cost analysis) | 11.37M | | 70.43M | 192k | | $169 |
+| Stage 1 worker window (12:00–14:15) | 3.14M | | 28.07M | 52k | | **$49** (est. was $15) |
+| Largest single event (the Stage 1 fork, 13:10) | 1.58M | | 18.22M | 39k | 19.8M | ~$25 |
+
+\* Fable 5.1: $12.5/M cache write, $0.25/M cache read, $50/M output; uncached input assumed $10/M.
+
+What the actuals change:
+- **Cache writes are 82% of the cost**, not output. The context is now ~500k tokens (events of 490–560k written with zero cache read = a full re-write; 22 of 58 events were full re-writes, ~$6 each). The Section 2 estimates assumed a 240k context and undercounted writes ~3×.
+- The Stage 1 worker cost ~$49, not $15, for the same reason: a self-fork re-reads the whole coordinator history on every tool call (18.2M cache-read tokens in one run).
+- Output tokens are a minor term (370k ≈ $19). Thinking is included in output and is not what drives cost.
+- Ratios and the recommendation are unchanged; the absolute savings from context hygiene are larger than estimated: a fresh 40k-token chat re-writes for ~$0.5 instead of ~$6, and a brief-based 25k worker costs ~$3–5 per Stage-1-sized run instead of ~$49.
+
+Projection for the remaining work (Spanish + English arms, evals, judge passes, reports, write-up; 150–325 agent turns), all on Fable 5.1 (no model downgrade):
+- Status quo (500k coordinator context, self-forked workers): **$150–400 notional**.
+- Fresh coordinator chat (~40k) + brief-based workers (~25k): **$30–100 notional**.
+Whether any of this bills on-demand depends on the remaining "Included" allowance in the Cursor dashboard; to date it has been $0.
+
+Incident log: on 2026-09-16 the baseline GPT-5 judge pass was accidentally started twice in parallel (a sandbox quirk hid the first process). 679 duplicate calls ≈ $4.8 wasted on the OpenAI side; results unaffected (cache keyed per response). Guard added: the run command now aborts if a judge process is already running.
+
+---
+
+
+Scope: tokens consumed by the coding agent itself (coordinator chat + subagents), not GPU training tokens. Sections 1–6 are the 2026-09-13 *estimates* from transcripts; Section 0 above has the measured actuals.
 
 ## 1. Method and caveats
 
