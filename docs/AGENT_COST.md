@@ -41,7 +41,9 @@ Two events excluded as a mis-sent prompt (2026-09-16 20:41:44, a 5-token aborted
 - The larger saving came from context size, not model: Cursor compacted the chat to ~100k tokens during this stretch, so a cold turn now re-writes ~100k ($0.40 on Grok, ~$1.3 on Fable) instead of ~570k ($7.1 on Fable).
 - Grok rates used: $4/M input, $1/M cache read, $12/M output (Section 6). Fable as in Section 0.
 
-Revised projection for the remainder, at the now-measured ~100–150k context: each arm on Grok ≈ $8–20 (launch $3.6, 8 polls at $0.4–0.8 each, pull/judge/report 3 turns, debugging contingency); 500-step extensions +$3–6 per arm; final synthesis and write-up on Fable, 15–25 mostly cold turns at $1–2 → $15–50. **Remaining $35–100 notional; project total $330–400 notional**, $0 billed so far.
+Decision 2026-09-18 (user): all remaining agent work on Claude Fable 5.1, extra-high thinking, 1M context window, in the existing chat; no fresh chats and no cheaper models. This supersedes the workflow-B and mixed-model recommendations in Sections 4–5. Consequence: cold-turn cost tracks the growing context (~$1.5–2 at 150k, ~$3–4 at 300k, $12.5 at 1M) and the chat will not be compacted early. Spanish-arm estimate under this decision: launch turn + 7–10 polls at ~45 min + pull/judge/report ≈ **$30–60 notional**; the 2026-09-17 repeat of the launch-to-pause procedure on Fable in this chat is the reference point. On-demand billing remains $0 while usage stays Included.
+
+Earlier projection (before that decision), at the ~100–150k context measured on 09-16: each arm on Grok ≈ $8–20 (launch $3.6, 8 polls at $0.4–0.8 each, pull/judge/report 3 turns, debugging contingency); 500-step extensions +$3–6 per arm; final synthesis and write-up on Fable, 15–25 mostly cold turns at $1–2 → $15–50. **Remaining $35–100 notional; project total $330–400 notional**, $0 billed so far.
 
 Runpod actuals from the billing API (2026-09-10 → 09-17): GPU $10.65, storage $1.09, pod disk $0.02, **total $11.76**; the launch pod `q0rkwvh27l8o1f` posted $2.56 for its 43.8 minutes. OpenAI to date ≈ $11.5 (INFRA.md).
 

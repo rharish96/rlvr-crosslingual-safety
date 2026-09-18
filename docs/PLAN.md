@@ -163,6 +163,8 @@ Status: Stage 1 (7B pipeline test) complete 2026-09-13, GO (`docs/STAGE1_REPORT.
 - Stage 1 (2026-09-13): micro-batch 16 → 4 after OOM; `report.py` aligns on shared items; pod replaced on same volume; `--report-to none` recommended for unattended runs (trackio shutdown hang). Open: primary judge choice (STAGE1_REPORT §6) after the local judge over-scored soft refusals vs GPT-5.
 - 2026-09-16, Option B: GPT-5 AISI primary safety judge for baseline/final; local judge for midpoint trajectory only. Baseline judged (939/939, ASR 9.9%). Stratified spot check dropped as superseded.
 - (2026-09-13, superseded by Option B above) API judge chosen as AISI prompt + `gpt-5-2025-08-07` for a 30-response Stage 1 check and a pre-registered stratified 50-response check at the final checkpoint.
+- 2026-09-16/17: launch-to-pause procedure (§14 item 6) executed twice on the new pod `q0rkwvh27l8o1f`; screening kept 1,643 (`pool_es_7b.json`, committed); first 11 steps healthy and matching across runs (reward 0.47/0.48 vs 0.48 expected, ~56 s/step, 78–79 GB). Both partial runs discarded; the arm starts from step 0. The chat was compacted on 09-16; `docs/HANDOFF.md` written and the train+eval chain versioned as `scripts/remote/launch_arm.sh`.
+- 2026-09-18: agent runs on Claude Fable 5.1 (extra-high, 1M context) in the existing chat for the rest of the experiment; no fresh chats or cheaper models. Extension rule in §7 unchanged and applied to the English arm's step count. Spanish-arm cost estimate and credit recommendations in `HANDOFF.md` §6.
 
 ## 19. Glossary
 

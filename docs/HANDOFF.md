@@ -75,15 +75,18 @@ Gate: if the final math avg@8 CI does not exclude zero, extend to 500 steps from
 - Concise prose, no mannered filler; tables only when they help. Explain jargon plainly when asked ("like I'm stupid").
 - Present decisions with the trade-off and a recommendation; the user picks. Record the pick in `PLAN.md` §18.
 - Report measured numbers, not estimates, whenever a read is possible (Runpod billing API, usage CSVs, log files).
-- Cheap model (Grok 4.6 Fast) is acceptable for launch/poll/pull routine; Fable 5.1 (or Opus 5) for anything touching reward, evaluation, statistics, judge logic, debugging, interpretation, write-up. Measured: the launch-to-pause stretch cost $5.8 notional on Grok at ~100–330k context.
+- Agent model (user decision 2026-09-18): **Claude Fable 5.1, extra-high thinking, 1M context, in the existing chat**. No fresh chats, no switching to cheaper models for monitoring, and the agent must not change chat settings. Cost per cold turn grows with the context (~$1.5–2 at 150k, ~$12.5 at 1M); accepted. Polls every ~45 min. (For the record: the 09-16 launch-to-pause stretch cost $5.8 notional on Grok 4.6 Fast at ~100–330k context.)
+- Cursor's auto-review prompts for approval on some routine steps: a shell call that edits `~/.ssh/config` together with ssh commands, and the MCP pod stop. Edit the SSH config as its own step (ssh-only commands are on the user's allowlist); expect one click for the stop. Neither is a failure.
 
 ## 6. Open items for the user
 
-1. Go/no-go to relaunch the Spanish arm (§3). Suggested Runpod balance ≈ $60 for both arms with buffer; OpenAI project limit ≥ $50.
+1. Go/no-go to relaunch the Spanish arm (§3). Estimate (2026-09-18): GPU 4.5–5.4 h ≈ $16–19 nominal, $22–25 with a crash/idle buffer, +$15–17 if extended to 500 steps; GPT-5 judge on the final $6.7 (+$6.7 if extended); Cursor ≈ $30–60 notional on Fable in this chat. Suggested Runpod balance ≥ $30 for this arm, ≥ $50 to cover the extension without a mid-run top-up (both arms with extensions ≈ $90–100); OpenAI project limit with ≥ $25 headroom; Cursor on-demand cap $50 per arm if one must be set.
 2. Terminate old pod `o7tqb58mzk4k4f` (console; $0 while EXITED, harmless to keep).
 3. Whether to API-judge midpoints too (+$6.7 each; plan says local judge only for the trajectory).
 4. Whether to double-judge finals to halve GPT-5's 3.1% per-response noise (+$6.7 per checkpoint).
-5. Model for monitoring turns (Grok proven adequate for the launch stretch) vs. staying on Fable now that the context is ~100k.
+5. ~~Model for monitoring turns~~ Resolved 2026-09-18: Fable 5.1 in this chat throughout (§5).
+
+The launch-to-pause procedure in §3 has been executed twice (2026-09-16 and 2026-09-17, the second time from this document alone) with matching first-11-step metrics; see `INFRA.md` session log. The 500-step extension is decided by the pre-registered math gate only (`PLAN.md` §7): if the final avg@8 CI over the 163 test items includes zero, resume from `checkpoint-250` to 500 and re-test once before any GPT-5 judge pass; the English arm then matches the step count.
 
 ## 7. Cost to date (2026-09-17)
 
