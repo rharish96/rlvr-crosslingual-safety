@@ -22,6 +22,7 @@ Set up 2026-09-13 via the official Runpod MCP server (OAuth; no API key on disk)
   - 2026-09-13 prep (bootstrap + prefetch + checks) ≈ 22 min ≈ $1.25.
   - 2026-09-13 Stage 1 (screening 200×8, 10-step training with two OOM retries, baseline math + safety, smoke evals) ≈ 1 h 57 m ≈ $6.80.
   - 2026-09-16 Spanish-arm first launch (new pod `q0rkwvh27l8o1f`, screen 4,000×8, train to step 11, then deliberate pause): 2,625 s ≈ 43.8 min ≈ **$2.55**. Last SSH: `205.196.17.250:11432` (changes on restart). Pod EXITED. Screening pool `data/processed/pool_es_7b.json` (1,643 IDs) survives on the volume; the 11 training steps were discarded (relaunch from scratch, no `--resume`).
+  - 2026-09-17 repeat of the launch-to-pause procedure from `HANDOFF.md` §3 (test that execution does not depend on the compacted chat context): same pod, SSH `205.196.17.250:11826`, `launch_arm.sh es`, 11 steps, killed, stopped. Uptime 2,069 s ≈ 34.5 min ≈ **$2.00**. First-11-step metrics matched 2026-09-16 (reward 0.484 vs 0.465, zero-std 0.09 vs 0.06, 56.9 vs 55.2 s/step, 77.7 GB). Logs kept on the volume as `/workspace/logs/es_seed0_run1_0916.log` and `es_seed0_run2_0917.log`; `/workspace/adapters/es_seed0` again holds only the discarded run and must be deleted before the real launch.
 
 ## Verified on the pod
 
