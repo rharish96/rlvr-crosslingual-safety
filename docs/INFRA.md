@@ -5,7 +5,7 @@ Set up 2026-09-13 via the official Runpod MCP server (OAuth; no API key on disk)
 ## Resources
 
 - Network volume `rlvr-safety` — id `yhcwl87f48`, 100 GB STANDARD, data center **US-GA-2**, ~$7/month. Mounted at `/workspace`. Holds everything: uv + Python 3.12, the project venv (torch 2.13.0+cu130, vLLM 0.29.0, TRL 1.13.0), the HF cache (25 GB: Qwen2.5-3B/7B-Instruct, gemma-2b, the StrongREJECT evaluator adapter), datasets, and later adapters/generations.
-- Pod `rlvr-safety-h100` — id `q0rkwvh27l8o1f` (replaced `o7tqb58mzk4k4f` on 2026-09-16: its host had no free GPU on restart; the old pod is still EXITED and can be terminated). 1× H100 80GB SXM, secure cloud, **$3.49/hour while RUNNING**, $0 while EXITED. Image `runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404`, 40 GB container disk (ephemeral), port 22/tcp, SSH key injected at create.
+- Pod `rlvr-safety-h100` — id **`117rcbsl79ii1k`** (created 2026-09-18 for the Spanish arm after `q0rkwvh27l8o1f` failed to restart for lack of a free GPU on its host; that pod in turn replaced `o7tqb58mzk4k4f` on 2026-09-16 for the same reason. Both older pods are EXITED at $0 GPU cost and can be terminated in the console.) Pattern: a stopped pod rarely gets its H100 back after hours; expect to create a fresh pod on the volume at each session start. 1× H100 80GB SXM, secure cloud, **$3.49/hour while RUNNING**, $0 while EXITED. Image `runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404`, 40 GB container disk (ephemeral), port 22/tcp, SSH key injected at create.
 - Account: SSH public key `~/.ssh/id_ed25519.pub` (comment `rharish96-runpod`) registered. HF token copied to `/workspace/.hf_token` and exported by `scripts/remote/env.sh`. No Runpod secrets used.
 
 ## Daily operation
