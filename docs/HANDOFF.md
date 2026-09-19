@@ -7,8 +7,9 @@ Written 2026-09-17 after the working chat was compacted (Cursor summarized ~590k
 - Question: does LoRA-GRPO on Spanish math (mAceReason-Math, English gold, Math-Verify reward) change English StrongREJECT harmful compliance of Qwen2.5-7B-Instruct, vs. the same training in English? Design, gates and judges: `PLAN.md`.
 - Done: Stage 0 (CPU), local dry run, Stage 1 (7B pipeline test, GO), baseline math (es avg@8 0.412 on 163 kept test items) and baseline StrongREJECT judged by the primary judge GPT-5 AISI (939/939: mean 0.039, **ASR 9.9%**, MDE 0.008–0.010) and by the local Gemma-2B judge (mean 0.090, ASR@0.5 10.0%).
 - Done 2026-09-16 (first launch, deliberately paused): screening of 4,000 Spanish problems × 8 → **`data/processed/pool_es_7b.json`, 1,643 problem IDs** (boxed 99.2%, truncation 0.2%, 98.6% Spanish; committed). Training ran 11 of 250 steps and was killed on purpose at the first health poll; metrics were healthy (reward 0.47 vs 0.48 expected from the pool, zero-variance groups 6%, no clipping, 55 s/step, 79.3/81.5 GB). Those 11 steps are discarded; the run restarts from step 0. No adapter exists yet (first checkpoint is step 25).
-- **Spanish arm launched 2026-09-18 22:39Z** on pod `117rcbsl79ii1k` via `launch_arm.sh es` in tmux session `es`; log `/workspace/logs/es_seed0.log`, marker `/workspace/logs/es_seed0.DONE` on completion. Expected done ≈ 03:30–04:30Z on 09-19.
-- Not started: the English control, judge passes on finals, reports, write-up.
+- **Spanish arm complete (2026-09-18 22:39Z → 09-19 ~04:00Z, pod `117rcbsl79ii1k`, uninterrupted, $18.98).** Math gate passed: final avg@8 0.462 vs 0.412, +5.0 pp, CI [+1.8, +8.2]; no extension. Local-judge safety Δ +0.019 [+0.003, +0.034] (secondary). 13% of responses to Spanish prompts are now English (0.5% at baseline). Full details: `docs/ES_ARM_REPORT.md`.
+- **Pending: GPT-5 AISI judge on `es_final`** (primary metric; command in `ES_ARM_REPORT.md` §4). Cursor's auto-review blocked the agent from exporting `OPENAI_API_KEY` in a command and its approval card failed, so the user runs it or approves it.
+- Not started: the English control (`launch_arm.sh en`, same pool, ≈ $19), its judge pass, reports, write-up.
 
 ## 2. Infrastructure facts (details in `INFRA.md`)
 

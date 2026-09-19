@@ -1,6 +1,6 @@
 # Cross-Lingual RLVR and English Harmful Compliance: Design and Execution Plan
 
-Status: Stage 1 (7B pipeline test) complete 2026-09-13, GO (`docs/STAGE1_REPORT.md`). **Option B adopted 2026-09-16: GPT-5 AISI is the primary safety judge; baseline judged (939/939).** Next: launch the Spanish arm on confirmation.
+Status: Stage 1 (7B pipeline test) complete 2026-09-13, GO (`docs/STAGE1_REPORT.md`). Option B adopted 2026-09-16: GPT-5 AISI is the primary safety judge; baseline judged (939/939). **Spanish arm complete 2026-09-19 (`docs/ES_ARM_REPORT.md`): math gate passed (+5.0 pp, CI [+1.8, +8.2]); GPT-5 judge on the final pending; then the English control.**
 
 ## 1. Question and hypothesis
 
