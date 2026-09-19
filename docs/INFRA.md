@@ -50,6 +50,7 @@ Set up 2026-09-13 via the official Runpod MCP server (OAuth; no API key on disk)
 
 - Pod `o7tqb58mzk4k4f` remained EXITED all day; only the volume billed.
 - OpenAI: baseline GPT-5 AISI pass completed from the Mac, 939/939 responses. Spend ≈ $11.5 total on OpenAI so far, of which ≈ $4.8 was an accidental parallel duplicate run (see AGENT_COST.md incident log) and ≈ $0.3 the earlier 40-call cost measurement.
+- 2026-09-19: `es_final` judge pass, 937/939 in 15 min, $6.05 (OpenAI total ≈ $17.6). Two requests rejected by OpenAI's biological-risk filter (`litellm.BadRequestError`), left NaN and filled by `report.py`. Runpod total to date $33.4 (GPU $31.2, storage $2.1).
 - Decisions: Option B (GPT-5 AISI primary judge); checkpoints every 25 steps; deliberate pauses = stop pod + relaunch from scratch; `--report-to none`; sparse filtered polling; `&&`-chained evaluations under tmux instead of a separate run script.
 
 ## More gotchas (learned 2026-09-16)
