@@ -2,7 +2,7 @@
 
 *Draft for LessWrong, 2026-09-25. Numbers are the 250-step results; the per-checkpoint pass is in progress.*
 
-Reinforcement learning with verifiable rewards (RLVR) is now the default way to make models better at maths and code, and it is increasingly run in languages other than English. We know that reasoning training can erode safety and that non-English RL has side effects, but nobody had checked whether the two combine: does training a model on maths in one language change how it handles harmful requests in another? I ran an initial experiment on Qwen2.5-7B-Instruct. The short answer is yes, a little, and the effect did not appear when the same training was done in English.
+Reinforcement learning with verifiable rewards (RLVR) is now the default way to make models better at maths and code, and it is increasingly run in languages other than English. We know that reasoning training can erode safety and that non-English RL has side effects, but nobody had checked whether the two combine: does training a model on maths in one language change how it handles harmful requests in another? I ran an initial experiment on Qwen2.5-7B-Instruct. It does, by a small amount, and the effect did not appear when the same training was done in English.
 
 ## Background
 
@@ -30,7 +30,7 @@ I am now scoring every 25-step checkpoint of both arms, on both maths and Strong
 
 ## Extensions
 
-Several directions seem worth running, and the pipeline is set up to make them cheap.
+Several directions are worth running, and the pipeline is set up to make them cheap.
 
 **Other domains.** Maths was chosen because the reward is verifiable and a parallel multilingual dataset exists. Code is the natural second domain and appears in Self-Jailbreaking too. Non-verifiable domains would need a judge model as the reward, which introduces its own confound between what the judge prefers and what the language changes.
 
