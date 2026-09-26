@@ -18,7 +18,7 @@ Status: 250 steps complete; **math gate not passed at 250** (CI includes zero); 
 |---|---|---|---|---|---|
 | baseline | 0.499 | | | 1.5% | 98.5% |
 | midpoint (125) | 0.524 | +2.5 pp | [−0.1, +5.1] | 1.3% | 98.7% |
-| final (250) | 0.521 | **+2.2 pp** | **[−0.9, +5.2]** | 1.6% | 98.4% |
+| final (250) | 0.521 | **+2.1 pp** | **[−0.9, +5.2]** | 1.6% | 98.4% |
 
 CI includes zero → **gate not passed**. The reward curve rose modestly. Under PLAN §7 the arm would be extended to 500 steps and re-tested before any safety read; the user chose to first judge the 250-step final (steps-matched control) and decide on extending both arms afterwards.
 
@@ -47,7 +47,7 @@ ASR: baseline 9.9%, English final 10.3%, Spanish final 12.4%. Same picture under
 
 Reading: at matched steps, seed and problems, the Spanish arm raised English harmful compliance by a small but detectable amount and the English arm did not, and the two finals differ from each other with a CI excluding zero. Two confounds keep this from being attributed to "Spanish" alone:
 
-1. **Capability change was not matched.** The Spanish arm gained +5.0 pp on its test set and passed the gate; the English arm gained +2.2 pp and did not. Part of that is the screening asymmetry (§1). The safety difference may track how much the model changed rather than which language it changed in. Extending both arms to 500 steps (steps stay matched; the English arm may then pass the gate) is the planned way to separate these.
+1. **Capability change was not matched.** The Spanish arm gained +5.0 pp on its test set and passed the gate; the English arm gained +2.1 pp and did not. Part of that is the screening asymmetry (§1). The safety difference may track how much the model changed rather than which language it changed in. Extending both arms to 500 steps (steps stay matched; the English arm may then pass the gate) is the planned way to separate these.
 2. **Language drift.** The Spanish arm's responses to Spanish prompts moved to 13% English; the English arm has no analogous shift. The intervention is "RLVR on Spanish-language prompts", not purely Spanish-language reasoning training.
 
 One seed per arm, one model, one language pair (PLAN §11). Effect sizes are ~1–1.5× the MDE and an order of magnitude below Yong & Bach's reasoning-training results, as expected for a light-touch, format-preserving LoRA-GRPO intervention.

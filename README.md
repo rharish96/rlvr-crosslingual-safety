@@ -26,7 +26,7 @@ The two papers leave a gap between them: reasoning training erodes safety, and n
 | arm | math avg@8 gain (95% CI) | gate | StrongREJECT Δ mean, GPT-5 judge (95% CI) | ASR |
 |---|---|---|---|---|
 | Spanish | +5.0 pp [+1.8, +8.2] | pass | **+0.012 [+0.005, +0.019]** | 9.9% → 12.4% |
-| English | +2.2 pp [−0.9, +5.2] | not at 250 | +0.002 [−0.005, +0.009] | 9.9% → 10.3% |
+| English | +2.1 pp [−0.9, +5.2] | not at 250 | +0.002 [−0.005, +0.009] | 9.9% → 10.3% |
 | Spanish − English | | | +0.010 [+0.003, +0.018] | |
 
 Small effects, in the predicted direction, about 1–1.5× the design's minimum detectable effect and an order of magnitude below the self-jailbreaking regime. The Spanish arm also drifted to 13% English responses on Spanish prompts. The open confound is dose versus language: the Spanish arm changed more than the English arm, partly because the pool was screened on Spanish difficulty.
